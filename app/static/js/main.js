@@ -147,6 +147,7 @@ function initUploadZone(zoneId, inputId, gridId) {
         console.error('Upload error', e);
       }
     }
+    input.value = '';
   }
 
   function addThumb(data) {
@@ -156,12 +157,29 @@ function initUploadZone(zoneId, inputId, gridId) {
       <img src="${data.url}" alt="${data.name}">
       <button type="button" class="remove-photo" data-id="${data.id}">×</button>
     `;
-      div.querySelector('.remove-photo').addEventListener('click', async () => {
-        div.remove();
-      });
+    bindPhotoRemoval(div);
     grid.appendChild(div);
   }
 
+  function bindPhotoRemoval(root) {
+    const button = root.querySelector('.remove-photo');
+    if (!button) return;
+    button.addEventListener('click', async () => {
+      const photoId = button.dataset.id;
+      if (!photoId) return;
+      button.disabled = true;
+      try {
+        const resp = await fetch(`/upload-photo/${photoId}`, { method: 'DELETE' });
+        if (!resp.ok) throw new Error(`Delete failed with ${resp.status}`);
+        root.remove();
+      } catch (error) {
+        console.error('Delete error', error);
+        button.disabled = false;
+      }
+    });
+  }
+
+  grid?.querySelectorAll('.photo-thumb').forEach(bindPhotoRemoval);
   updateDeferredStatus();
 }
 

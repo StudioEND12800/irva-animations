@@ -305,6 +305,21 @@ def upload_photo():
     return jsonify({'id': p.id, 'name': f.filename, 'url': url_for('submit.photo', filename=fname)})
 
 
+@submit_bp.route('/upload-photo/<int:photo_id>', methods=['DELETE'])
+def delete_photo(photo_id):
+    photo = Photo.query.get_or_404(photo_id)
+    if not _can_manage_photo(photo):
+        return jsonify({'error': 'Suppression non autorisée'}), 403
+
+    fpath = os.path.join(current_app.config['UPLOAD_FOLDER'], photo.filename)
+    if os.path.exists(fpath):
+        os.remove(fpath)
+
+    db.session.delete(photo)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+
 @submit_bp.route('/uploads/<path:filename>')
 def photo(filename):
     from flask import send_from_directory
@@ -331,6 +346,13 @@ def _parse_float(s):
         return float(str(s).replace(',', '.'))
     except (ValueError, TypeError):
         return None
+
+
+def _can_manage_photo(photo):
+    if session.get('admin'):
+        return True
+    token = session.get('cr_token')
+    return bool(token and photo.cr and photo.cr.token == token)
 
 
 def _envoyer_lien_reprise(cr):

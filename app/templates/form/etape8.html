@@ -27,6 +27,7 @@
         {% for photo in cr.photos %}
         <div class="photo-thumb">
           <img src="{{ url_for('submit.photo', filename=photo.filename) }}" alt="{{ photo.original_name }}">
+          <button type="button" class="remove-photo" data-id="{{ photo.id }}" aria-label="Supprimer la photo">×</button>
         </div>
         {% endfor %}
       </div>
