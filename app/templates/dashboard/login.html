@@ -1,0 +1,16 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Connexion Admin — IRVA{% endblock %}
+{% block content %}
+<div style="max-width:360px;margin:80px auto">
+  <div class="form-card">
+    <h2 class="form-section-title"><span class="section-icon">🔐</span>Accès admin</h2>
+    <form method="POST">
+      <div class="field-group">
+        <label class="field-label">Mot de passe</label>
+        <input class="field-input" type="password" name="password" autofocus required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Se connecter</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'form/base.html' %}
+{% from 'form/macros.html' import progress_bar, field_radio, field_text, field_select %}
+
+{% block title %}Étape {{ num }}/{{ total }} — Infos Éleveur{% endblock %}
+
+{% block content %}
+{{ progress_bar(num, total) }}
+
+<div class="form-card">
+  <h2 class="form-section-title">
+    <span class="section-icon">👤</span>
+    Informations éleveur·se
+  </h2>
+
+  <form method="POST" action="{{ url_for('submit.etape', num=num) }}" novalidate>
+
+    <div class="field-row">
+      {{ field_text('date_premier_jour', "Date du premier jour d'animation",
+          value=cr.date_premier_jour|string if cr.date_premier_jour else '',
+          type='date', required=True) }}
+    </div>
+
+    <div class="field-row col-2">
+      {{ field_text('nom_prenom', 'Nom / Prénom', value=cr.nom_prenom, required=True,
+          placeholder='ex. Marie Dupont') }}
+      {{ field_text('num_cheptel', 'N° de Cheptel', value=cr.num_cheptel, required=True,
+          placeholder='ex. 12059081') }}
+    </div>
+
+    {{ field_text('email', 'Adresse e-mail', value=cr.email, type='email', required=True,
+        placeholder='ex. marie@exemple.fr',
+        hint='Nécessaire pour valider votre envoi et vous envoyer votre exemplaire.') }}
+
+    {{ field_radio('animation_solo', "Vous avez réalisé l'animation…", [
+        ('Seul', 'Seul·e'),
+        ('Avec un autre éleveur·se', 'Avec un·e autre éleveur·se'),
+    ], value=cr.animation_solo or '', required=True) }}
+
+    <div id="field-coeleveuse" class="{% if cr.animation_solo != 'Avec un autre éleveur·se' %}hidden{% endif %}">
+      {{ field_text('nom_coeleveuse', "Nom / Prénom du·de la co-éleveur·se",
+          value=cr.nom_coeleveuse, placeholder='ex. Jean Martin') }}
+    </div>
+
+    {{ field_radio('filiere', "Pour quelle filière réalisez-vous l'animation ?", [
+        ('SA4R',    'SA4R'),
+        ('Natera',  'Natera'),
+        ('Sudries', 'Sudries'),
+        ('Cadars',  'Cadars'),
+        ('Autre',   'Autre'),
+    ], value=cr.filiere or '', required=True) }}
+
+    <div class="form-actions">
+      <button type="submit" name="action" value="sauvegarder" class="btn btn-secondary">
+        💾 Sauvegarder et continuer plus tard
+      </button>
+      <button type="submit" name="action" value="suivant" class="btn btn-primary">
+        Suivant →
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.querySelectorAll('input[name="animation_solo"]').forEach(r => {
+  r.addEventListener('change', () => {
+    const box = document.getElementById('field-coeleveuse');
+    box.classList.toggle('hidden', r.value !== 'Avec un autre éleveur·se');
+  });
+});
+</script>
+{% endblock %}

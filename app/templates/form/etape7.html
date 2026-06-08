@@ -1,0 +1,65 @@
+{% extends 'form/base.html' %}
+{% from 'form/macros.html' import progress_bar, field_radio, field_checkbox, field_textarea %}
+{% block title %}Étape 7/8 — Votre ressenti{% endblock %}
+{% block content %}
+{{ progress_bar(num, total) }}
+<div class="form-card">
+  <h2 class="form-section-title"><span class="section-icon">💬</span>Votre ressenti en tant qu'éleveur·se</h2>
+  <form method="POST" action="{{ url_for('submit.etape', num=num) }}" novalidate>
+
+    {{ field_radio('ressenti_mise_en_place', "Ressenti pour la mise en place de l'animation", [
+      ('Facile','Facile'),('Difficile','Difficile'),('Améliorable','Améliorable'),
+    ], value=cr.ressenti_mise_en_place or '', required=True) }}
+
+    {{ field_radio('ressenti_accroche', "Ressenti pour l'accroche des consommateurs", [
+      ('Facile','Facile'),('Difficile','Difficile'),("J'aimerais m'améliorer","J'aimerais m'améliorer"),
+    ], value=cr.ressenti_accroche or '', required=True) }}
+
+    {{ field_radio('ressenti_argumentaire', "Ressenti pour l'argumentaire V.A.S.", [
+      ('Facile','Facile'),('Difficile','Difficile'),("Besoin d'élement complémentaire","Besoin d'éléments complémentaires"),
+    ], value=cr.ressenti_argumentaire or '', required=True) }}
+
+    <div id="field-formation" class="{% if cr.ressenti_accroche == 'Facile' %}hidden{% endif %}">
+      {{ field_radio('interesse_formation', "Intéressé·e pour une formation d'1 jour ?", [
+        ('OUI','OUI — je suis intéressé·e'),('NON','NON'),
+      ], value=cr.interesse_formation or '') }}
+    </div>
+
+    <div class="sub-section">
+      <div class="sub-section-title">Kits d'animation</div>
+      {{ field_radio('kit_irva', "Kit animation IRVA (dépliants, porte-clé, ballons…)", [
+        ('Pratique','Pratique'),('Inutile','Inutile'),('Améliorable','Améliorable'),
+      ], value=cr.kit_irva or '', required=True) }}
+      {{ field_radio('kit_interbev', "Kit animation Interbev (si présent)", [
+        ('Pratique','Pratique'),('Pas pratique','Pas pratique'),
+      ], value=cr.kit_interbev or '') }}
+    </div>
+
+    {{ field_textarea('precisions_ressenti', "Précisions sur votre ressenti personnel…", value=cr.precisions_ressenti, rows=4) }}
+
+    <div class="sub-section">
+      <div class="sub-section-title">Échanges avec le magasin</div>
+      {% set echanges = cr.echanges_chef_boucher | fromjson if cr.echanges_chef_boucher else [] %}
+      {{ field_checkbox('echanges_chef_boucher', "Échanges avec le chef boucher / équipe", [
+        ("OUI, en amont pour préparer l'animation","OUI — en amont (tél, mail…)"),
+        ("OUI, pendant l'animation","OUI — pendant l'animation"),
+        ("OUI, en clôture de l'animation (bilan fait avec équipe)","OUI — en clôture"),
+        ('NON','NON'),
+      ], values=echanges, required=True) }}
+      {{ field_textarea('remarques_chef_boucher', "Remarques / Demandes du chef boucher ou de l'équipe", value=cr.remarques_chef_boucher, rows=3) }}
+    </div>
+
+    {{ field_textarea('avis_eleveur', "Votre avis / commentaires / propositions sur l'animation…", value=cr.avis_eleveur, rows=4) }}
+
+    {{ field_radio('incident_majeur', "Incident majeur à signaler à la filière en priorité ?", [
+      ('OUI','OUI — signaler immédiatement'),('NON','NON'),
+    ], value=cr.incident_majeur or '') }}
+
+    <div class="form-actions">
+      <a href="{{ url_for('submit.etape', num=num-1) }}" class="btn btn-back">← Précédent</a>
+      <button type="submit" name="action" value="sauvegarder" class="btn btn-secondary">💾 Sauvegarder</button>
+      <button type="submit" name="action" value="suivant" class="btn btn-primary">Suivant →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

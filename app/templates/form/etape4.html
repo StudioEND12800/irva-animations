@@ -1,0 +1,57 @@
+{% extends 'form/base.html' %}
+{% from 'form/macros.html' import progress_bar, field_checkbox, field_select, field_textarea %}
+{% block title %}Étape 4/8 — Morceaux & Prix{% endblock %}
+{% block content %}
+{{ progress_bar(num, total) }}
+<div class="form-card">
+  <h2 class="form-section-title"><span class="section-icon">💰</span>Morceaux présents & Relevé de prix</h2>
+  <form method="POST" action="{{ url_for('submit.etape', num=num) }}" novalidate>
+
+    {% set morceaux = cr.morceaux_presents | fromjson if cr.morceaux_presents else [] %}
+    {{ field_checkbox('morceaux_presents', "Morceaux de V.A.S. présents (LS ou tradi)", [
+      ('Escalope','Escalope'),('Sauté','Sauté'),('Roti','Rôti'),
+      ('Tendron','Tendron'),('Jarret / Ossobuco','Jarret / Ossobuco'),
+      ('Saucisse','Saucisse'),('Steack haché','Steak haché'),
+      ('Carparcio','Carpaccio'),('Abat','Abats'),('Plats cuisinés','Plats cuisinés'),
+    ], values=morceaux, description="Cochez tout ce que vous avez vu lors de l'animation", required=True) }}
+
+    <div class="sub-section">
+      <div class="sub-section-title">Relevé de prix (€/kg)</div>
+      <p class="field-hint">Renseignez de préférence les prix <strong>hors promotion</strong>. Ne complétez que les cases pour lesquelles vous avez un prix.</p>
+      <div style="overflow-x:auto">
+        <table class="prix-table">
+          <thead>
+            <tr>
+              <th>Morceau</th>
+              <th>V.A.S. (€/kg)</th>
+              <th>Autre veau (€/kg)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for slug, label in [('escalope','Escalope'),('saute','Sauté'),('roti','Rôti'),('tendron','Tendron'),('jarret','Jarret / Ossobuco'),('hache','Steak haché')] %}
+            <tr>
+              <td>{{ label }}</td>
+              <td><input class="field-input" type="number" name="prix_vas_{{ slug }}" value="{{ getattr(cr, 'prix_vas_' ~ slug) or '' }}" step="0.01" min="0" placeholder="—"></td>
+              <td><input class="field-input" type="number" name="prix_autre_{{ slug }}" value="{{ getattr(cr, 'prix_autre_' ~ slug) or '' }}" step="0.01" min="0" placeholder="—"></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {{ field_select('precision_prix', "Précision sur le relevé de prix VAS", [
+        ("Il y avait une promotion sur les prix VAS le jour de l'animation", "Promotion ce jour-là"),
+        ("Les prix VAS reflètent ceux habituellement pratiqués dans le magasin (hors animation)", "Prix habituels (hors animation)"),
+        ("Je ne sais pas !", "Je ne sais pas"),
+      ], value=cr.precision_prix or '') }}
+      {{ field_textarea('commentaire_prix', "Commentaires sur le relevé de prix", value=cr.commentaire_prix) }}
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('submit.etape', num=num-1) }}" class="btn btn-back">← Précédent</a>
+      <button type="submit" name="action" value="sauvegarder" class="btn btn-secondary">💾 Sauvegarder</button>
+      <button type="submit" name="action" value="suivant" class="btn btn-primary">Suivant →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

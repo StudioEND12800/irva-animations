@@ -1,0 +1,87 @@
+{% extends 'form/base.html' %}
+{% from 'form/macros.html' import progress_bar, field_radio, field_checkbox, field_textarea %}
+{% block title %}Étape 5/8 — Déroulé de l'animation{% endblock %}
+{% block content %}
+{{ progress_bar(num, total) }}
+<div class="form-card">
+  <h2 class="form-section-title"><span class="section-icon">🎯</span>Déroulé de l'animation</h2>
+  <form method="POST" action="{{ url_for('submit.etape', num=num) }}" novalidate>
+
+    <div class="field-row col-2">
+      <div class="field-group">
+        <label class="field-label required">Date du PREMIER jour d'animation</label>
+        <input class="field-input" type="date" name="date_premier_jour_anim"
+               value="{{ cr.date_premier_jour|string if cr.date_premier_jour else '' }}" required>
+      </div>
+      <div class="field-group">
+        <label class="field-label required">Date du DERNIER jour d'animation</label>
+        <input class="field-input" type="date" name="date_dernier_jour"
+               value="{{ cr.date_dernier_jour|string if cr.date_dernier_jour else '' }}" required>
+      </div>
+    </div>
+
+    {% set empl = cr.emplacement_animation | fromjson if cr.emplacement_animation else [] %}
+    {{ field_checkbox('emplacement_animation', "Emplacement de l'animation", [
+      ("Entrée du magasin","Entrée du magasin"),
+      ("Allée centrale","Allée centrale"),
+      ("Rayon libre service","Rayon libre service"),
+      ("Rayon traditionnel (à la coupe)","Rayon traditionnel"),
+    ], values=empl, required=True) }}
+
+    {{ field_radio('frequentation', "Fréquentation du magasin lors de l'animation", [
+      ('Très forte','Très forte'),('Bonne','Bonne'),('Faible','Faible'),('Très faible','Très faible')
+    ], value=cr.frequentation or '', required=True) }}
+
+    {{ field_radio('approvisionnement', "Approvisionnement du rayon au cours de l'animation", [
+      ('Régulier','Régulier'),('Assez régulier','Assez régulier'),('Insuffisant','Insuffisant')
+    ], value=cr.approvisionnement or '') }}
+
+    {{ field_radio('ruptures', "Y a-t-il eu des ruptures pour certains morceaux VAS ?", [
+      ('OUI','OUI'),('NON','NON')
+    ], value=cr.ruptures or '', required=True) }}
+
+    {{ field_textarea('precisions_animation', "Précisions…", value=cr.precisions_animation) }}
+
+    {% set outils = cr.outils_animation | fromjson if cr.outils_animation else [] %}
+    {{ field_checkbox('outils_animation', "Outils / animations spécifiques présents lors de votre animation", [
+      ('Dépliant recettes','Dépliant recettes'),('Oriflamme / voile','Oriflamme / voile'),
+      ('Ballon enfant / porte clé','Ballon / porte-clé'),
+      ('Dégustation avec un chef cuisinier','Dégustation avec chef cuisinier'),
+      ('Dégustation réalisée par éleveur','Dégustation par éleveur'),('Autres','Autres'),
+    ], values=outils, required=True) }}
+
+    {% set mea = cr.mise_en_avant | fromjson if cr.mise_en_avant else [] %}
+    {{ field_checkbox('mise_en_avant', "Mise en avant de l'animation par le magasin", [
+      ('Publications sur les réseaux sociaux','Réseaux sociaux'),
+      ("Affiches spécifiques dans le magasin pour l'animation","Affiches en magasin"),
+      ("Dépliant publicitaire qui annonce l'animation","Dépliant publicitaire"),
+      ("Annonces micro par l'animateur du magasin","Annonces micro"),
+      ('Autres','Autres'),
+      ('Aucune mise en avant particulière','Aucune'),
+    ], values=mea, required=True) }}
+
+    {{ field_radio('ventes_supplementaires', "L'animation a-t-elle entraîné des ventes supplémentaires ?", [
+      ('OUI','OUI'),('NON','NON')
+    ], value=cr.ventes_supplementaires or '', required=True) }}
+
+    {{ field_radio('incident', "Y a-t-il eu un souci / contre-temps ?", [
+      ('OUI','OUI'),('NON','NON')
+    ], value=cr.incident or '', required=True) }}
+
+    <div id="field-incident-detail" class="{% if cr.incident != 'OUI' %}hidden{% endif %}">
+      {% set inc = cr.type_incident | fromjson if cr.type_incident else [] %}
+      {{ field_checkbox('type_incident', "Type de problème rencontré", [
+        ('Découpe','Découpe'),('Etiquetage','Étiquetage'),
+        ('Approvisionnement','Approvisionnement'),('Autre','Autre'),
+      ], values=inc) }}
+      {{ field_textarea('precisions_incident', "Précisions sur le problème", value=cr.precisions_incident) }}
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('submit.etape', num=num-1) }}" class="btn btn-back">← Précédent</a>
+      <button type="submit" name="action" value="sauvegarder" class="btn btn-secondary">💾 Sauvegarder</button>
+      <button type="submit" name="action" value="suivant" class="btn btn-primary">Suivant →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

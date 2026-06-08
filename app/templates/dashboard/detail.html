@@ -1,0 +1,121 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}CR #{{ cr.id }} — {{ cr.nom_magasin }}{% endblock %}
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+  <div>
+    <a href="{{ url_for('dashboard.index') }}" style="color:var(--gray-600);font-size:13px">← Retour</a>
+    <h2 style="font-size:20px;color:var(--green);margin-top:4px">
+      {{ cr.nom_magasin or '—' }}
+      <span class="badge badge-{{ cr.statut }}" style="font-size:12px;vertical-align:middle">{{ cr.statut }}</span>
+    </h2>
+    <p style="color:var(--gray-600);font-size:13px">{{ cr.nom_prenom }} — {{ cr.filiere }} — {{ cr.date_premier_jour.strftime('%d/%m/%Y') if cr.date_premier_jour else '—' }}</p>
+  </div>
+  <div style="display:flex;gap:8px">
+    <a href="{{ url_for('export.pdf', cr_id=cr.id) }}" class="btn btn-secondary">📄 Télécharger PDF</a>
+    {% if cr.statut != 'valide' %}
+    <form method="POST" action="{{ url_for('dashboard.valider', cr_id=cr.id) }}" style="display:inline">
+      <button type="submit" class="btn btn-primary">✅ Valider</button>
+    </form>
+    {% endif %}
+    <form method="POST" action="{{ url_for('dashboard.supprimer', cr_id=cr.id) }}"
+          onsubmit="return confirm('Supprimer définitivement ce CR ?')" style="display:inline">
+      <button type="submit" class="btn btn-danger">🗑</button>
+    </form>
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="detail-section">
+    <h3>Éleveur·se</h3>
+    <div class="detail-row"><span class="detail-key">Nom</span><span class="detail-val">{{ cr.nom_prenom }}</span></div>
+    <div class="detail-row"><span class="detail-key">Cheptel</span><span class="detail-val">{{ cr.num_cheptel }}</span></div>
+    <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">{{ cr.email }}</span></div>
+    <div class="detail-row"><span class="detail-key">Filière</span><span class="detail-val">{{ cr.filiere }}</span></div>
+    <div class="detail-row"><span class="detail-key">Animation</span><span class="detail-val">{{ cr.animation_solo }}</span></div>
+    {% if cr.nom_coeleveuse %}<div class="detail-row"><span class="detail-key">Co-éleveur·se</span><span class="detail-val">{{ cr.nom_coeleveuse }}</span></div>{% endif %}
+  </div>
+
+  <div class="detail-section">
+    <h3>Magasin</h3>
+    <div class="detail-row"><span class="detail-key">Enseigne</span><span class="detail-val">{{ cr.enseigne }}</span></div>
+    <div class="detail-row"><span class="detail-key">Nom</span><span class="detail-val">{{ cr.nom_magasin }}</span></div>
+    <div class="detail-row"><span class="detail-key">Commune</span><span class="detail-val">{{ cr.commune }} ({{ cr.code_postal }})</span></div>
+    <div class="detail-row"><span class="detail-key">Région</span><span class="detail-val">{{ cr.region or '—' }}</span></div>
+    <div class="detail-row"><span class="detail-key">Chef boucher</span><span class="detail-val">{{ cr.nom_chef_boucher or '—' }}</span></div>
+    <div class="detail-row"><span class="detail-key">Ancienneté</span><span class="detail-val">{{ cr.anciennete_chef_boucher or '—' }}</span></div>
+  </div>
+
+  <div class="detail-section">
+    <h3>Animation</h3>
+    <div class="detail-row"><span class="detail-key">Dates</span><span class="detail-val">{{ cr.date_premier_jour }} → {{ cr.date_dernier_jour or '—' }}</span></div>
+    <div class="detail-row"><span class="detail-key">Durée</span><span class="detail-val">{{ cr.nb_jours }} jour(s)</span></div>
+    <div class="detail-row"><span class="detail-key">Rayons</span><span class="detail-val">{{ data.rayons_presents | join(', ') }}</span></div>
+    <div class="detail-row"><span class="detail-key">Emplacement</span><span class="detail-val">{{ data.emplacement_animation | join(', ') }}</span></div>
+    <div class="detail-row"><span class="detail-key">Fréquentation</span><span class="detail-val">{{ cr.frequentation }}</span></div>
+    <div class="detail-row"><span class="detail-key">Ventes suppl.</span><span class="detail-val">{{ cr.ventes_supplementaires }}</span></div>
+  </div>
+
+  <div class="detail-section">
+    <h3>Prix moyens</h3>
+    <div class="detail-row"><span class="detail-key">Prix moy. VAS</span><span class="detail-val" style="color:var(--green);font-size:18px;font-weight:700">{{ '%.2f €/kg'|format(cr.prix_moyen_vas) if cr.prix_moyen_vas else '—' }}</span></div>
+    <div class="detail-row"><span class="detail-key">Prix moy. autre veau</span><span class="detail-val" style="color:var(--orange);font-size:18px;font-weight:700">{{ '%.2f €/kg'|format(cr.prix_moyen_autre) if cr.prix_moyen_autre else '—' }}</span></div>
+    {% for slug, label in [('escalope','Escalope'),('saute','Sauté'),('roti','Rôti'),('tendron','Tendron'),('jarret','Jarret'),('hache','Haché')] %}
+    {% set vas_val = cr['prix_vas_' ~ slug] if cr['prix_vas_' ~ slug] is defined else getattr(cr, 'prix_vas_' ~ slug, None) %}
+    {% endfor %}
+    <div class="detail-row"><span class="detail-key">Escalope VAS</span><span class="detail-val">{{ '%.2f €'|format(cr.prix_vas_escalope) if cr.prix_vas_escalope else '—' }}</span></div>
+    <div class="detail-row"><span class="detail-key">Sauté VAS</span><span class="detail-val">{{ '%.2f €'|format(cr.prix_vas_saute) if cr.prix_vas_saute else '—' }}</span></div>
+    <div class="detail-row"><span class="detail-key">Rôti VAS</span><span class="detail-val">{{ '%.2f €'|format(cr.prix_vas_roti) if cr.prix_vas_roti else '—' }}</span></div>
+    <div class="detail-row"><span class="detail-key">Tendron VAS</span><span class="detail-val">{{ '%.2f €'|format(cr.prix_vas_tendron) if cr.prix_vas_tendron else '—' }}</span></div>
+  </div>
+</div>
+
+{# Photos #}
+{% if photos %}
+<div class="detail-section" style="margin-bottom:16px">
+  <h3>Photos de l'animation ({{ photos|length }})</h3>
+  <div class="photo-gallery">
+    {% for p in photos %}
+    <a href="{{ url_for('submit.photo', filename=p.filename) }}" target="_blank">
+      <img src="{{ url_for('submit.photo', filename=p.filename) }}" alt="{{ p.original_name }}">
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# Signature éleveur #}
+{% if cr.signature_eleveur_data %}
+<div class="detail-section" style="margin-bottom:16px">
+  <h3>Signature éleveur·se</h3>
+  <img src="{{ cr.signature_eleveur_data }}" style="max-height:100px;border:1px solid var(--gray-200);border-radius:6px;padding:8px">
+</div>
+{% endif %}
+
+{# Signature boucher #}
+{% if cr.signature_boucher_path %}
+<div class="detail-section" style="margin-bottom:16px">
+  <h3>Signature / tampon chef boucher</h3>
+  <a href="{{ url_for('submit.photo', filename=cr.signature_boucher_path) }}" target="_blank">
+    <img src="{{ url_for('submit.photo', filename=cr.signature_boucher_path) }}"
+         style="max-height:160px;border-radius:6px">
+  </a>
+</div>
+{% endif %}
+
+{# Commentaires #}
+{% if cr.avis_eleveur or cr.remarques_chef_boucher %}
+<div class="detail-section">
+  <h3>Commentaires</h3>
+  {% if cr.remarques_chef_boucher %}
+  <p style="font-size:13px"><strong>Chef boucher :</strong> {{ cr.remarques_chef_boucher }}</p>
+  {% endif %}
+  {% if cr.avis_eleveur %}
+  <p style="font-size:13px;margin-top:8px"><strong>Éleveur·se :</strong> {{ cr.avis_eleveur }}</p>
+  {% endif %}
+  {% if cr.incident_majeur == 'OUI' %}
+  <p style="color:var(--red);font-weight:700;margin-top:8px">⚠️ INCIDENT MAJEUR SIGNALÉ</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

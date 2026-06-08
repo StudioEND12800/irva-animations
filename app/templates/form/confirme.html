@@ -1,0 +1,22 @@
+{% extends 'form/base.html' %}
+{% block title %}Compte-rendu envoyé !{% endblock %}
+{% block content %}
+<div class="form-card confirm-card">
+  <div class="confirm-icon">✅</div>
+  <h2>Merci {{ cr.nom_prenom }} !</h2>
+  <p style="color:var(--gray-600);margin-bottom:24px">
+    Votre compte-rendu pour <strong>{{ cr.nom_magasin }}</strong> a bien été enregistré et transmis à l'IRVA
+    {% if cr.filiere %}et à la filière <strong>{{ cr.filiere }}</strong>{% endif %}.
+  </p>
+  {% if cr.email %}
+  <p style="font-size:13px;color:var(--gray-600)">
+    Un récapitulatif PDF vous a été envoyé à <strong>{{ cr.email }}</strong>.
+  </p>
+  {% endif %}
+  <div style="margin-top:32px">
+    <a href="{{ url_for('submit.index') }}" class="btn btn-primary">
+      Remplir un nouveau compte-rendu
+    </a>
+  </div>
+</div>
+{% endblock %}

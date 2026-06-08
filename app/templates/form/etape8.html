@@ -1,0 +1,74 @@
+{% extends 'form/base.html' %}
+{% from 'form/macros.html' import progress_bar, field_radio, field_checkbox %}
+{% block title %}Étape 8/8 — Photos & Signature{% endblock %}
+{% block content %}
+{{ progress_bar(num, total) }}
+<div class="form-card">
+  <h2 class="form-section-title"><span class="section-icon">📸</span>Photos & Signatures</h2>
+  <form method="POST" action="{{ url_for('submit.soumettre') }}" enctype="multipart/form-data" novalidate>
+
+    {# Photos animation #}
+    <div class="sub-section">
+      <div class="sub-section-title">Photos de l'animation</div>
+      {% set sit = cr.photos_situation | fromjson if cr.photos_situation else [] %}
+      {{ field_checkbox('photos_situation_check', "Votre situation :", [
+        ("J'ai pris une ou des photos de l'animation","J'ai pris des photos"),
+        ("Je n'ai pas pris de photos","Je n'ai pas pris de photos"),
+        ("Mon collègue a pris des photos et va les envoyer","Mon collègue va envoyer les photos"),
+      ], values=sit) }}
+
+      <div class="upload-zone" id="upload-zone-photos">
+        <input type="file" id="photos-input" name="photos_animation" accept="image/*" multiple>
+        <div class="upload-icon">📷</div>
+        <p>Cliquez ou glissez vos photos ici<br><strong>Plusieurs photos acceptées</strong></p>
+        <p style="font-size:11px;margin-top:4px;color:#9fbc78">JPG, PNG, HEIC — 8 Mo max par photo</p>
+      </div>
+      <div class="photo-grid" id="photo-grid">
+        {% for photo in cr.photos %}
+        <div class="photo-thumb">
+          <img src="{{ url_for('submit.photo', filename=photo.filename) }}" alt="{{ photo.original_name }}">
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Signature boucher #}
+    <div class="sub-section">
+      <div class="sub-section-title">Signature et tampon du chef boucher <span style="color:var(--red)">*</span></div>
+      <p class="field-hint">Prenez en photo le feuillet signé et tamponnez par le chef boucher et téléchargez-la ici.</p>
+      <div class="upload-zone" id="upload-zone-signature">
+        <input type="file" id="sig-boucher-input" name="signature_boucher" accept="image/*,application/pdf">
+        <div class="upload-icon">📋</div>
+        <p>Photo du feuillet signé (chef boucher)<br><strong>Obligatoire</strong></p>
+      </div>
+      {% if cr.signature_boucher_path %}
+      <p style="font-size:12px;color:var(--green);margin-top:8px">✓ Fichier déjà envoyé</p>
+      {% endif %}
+    </div>
+
+    {# Signature éleveur #}
+    <div class="sub-section">
+      <div class="sub-section-title">Votre signature <span style="color:var(--red)">*</span></div>
+      <p class="field-hint">Signez dans le cadre ci-dessous avec votre doigt ou la souris.</p>
+      <div class="signature-pad-wrapper">
+        <canvas id="sig-eleveur" class="signature-canvas"></canvas>
+        <input type="hidden" name="signature_eleveur_data" id="signature_eleveur_data"
+               value="{{ cr.signature_eleveur_data or '' }}">
+        <div class="sig-controls">
+          <button type="button" class="sig-clear">Effacer</button>
+        </div>
+      </div>
+      {% if cr.signature_eleveur_data %}
+      <p style="font-size:12px;color:var(--green);margin-top:4px">✓ Signature enregistrée</p>
+      {% endif %}
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('submit.etape', num=num-1) }}" class="btn btn-back">← Précédent</a>
+      <button type="submit" class="btn btn-primary" style="background:var(--green-dark)">
+        ✅ Envoyer le compte-rendu
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

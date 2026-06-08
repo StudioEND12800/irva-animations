@@ -1,0 +1,89 @@
+{% extends 'form/base.html' %}
+{% from 'form/macros.html' import progress_bar, field_checkbox, field_radio, field_number, field_textarea %}
+{% block title %}Étape 3/8 — Rayons{% endblock %}
+{% block content %}
+{{ progress_bar(num, total) }}
+<div class="form-card">
+  <h2 class="form-section-title"><span class="section-icon">🥩</span>Description des rayons</h2>
+  <form method="POST" action="{{ url_for('submit.etape', num=num) }}" novalidate>
+
+    {% set rayons = cr.rayons_presents | fromjson if cr.rayons_presents else [] %}
+    {{ field_checkbox('rayons_presents', "Dans quel(s) rayon(s) est présent le V.A.S. ?", [
+      ('Rayon libre-service (LS)','Rayon libre-service (LS)'),
+      ('Rayon Coupe (Trad)','Rayon Coupe (Trad)'),
+      ('Drive','Drive'),
+      ("Libre service à l'entrée du magasin (ponctuellement)","Libre service entrée (ponctuel)"),
+    ], values=rayons, description="Plusieurs réponses possibles") }}
+
+    {# ── Rayon LS ── #}
+    <div id="section-ls" class="sub-section {% if 'Rayon libre-service (LS)' not in rayons %}hidden{% endif %}">
+      <div class="sub-section-title">Rayon Libre-Service (LS)</div>
+      {% set ls_barq = cr.ls_barquettes | fromjson if cr.ls_barquettes else [] %}
+      {{ field_checkbox('ls_barquettes', "Type de barquette du V.A.S. ?", [
+        ('Beige (Compostable)','Beige (Compostable)'),
+        ('Noire (Polystyrène)','Noire (Polystyrène)'),
+        ('Transparente (PET)','Transparente (PET)'),
+        ('Blanche (Polystyrène)','Blanche (Polystyrène)'),
+      ], values=ls_barq) }}
+      {{ field_radio('ls_barquettes_sur_place', "Barquettes faites sur place ?", [('OUI','OUI'),('NON','NON')], value=cr.ls_barquettes_sur_place or '') }}
+      {{ field_radio('ls_visibilite', "Visibilité du V.A.S. en LS ?", [
+        ('Très Bonne','Très bonne'),('Bonne','Bonne'),('Mauvaise','Mauvaise'),('Très mauvaise','Très mauvaise')
+      ], value=cr.ls_visibilite or '', required=True) }}
+      {{ field_number('ls_lineaire', "Longueur du linéaire VAS (mètres)", value=cr.ls_lineaire, placeholder='ex. 3', min='0', max='50') }}
+      {{ field_radio('ls_qualite_decoupe', "Qualité de la découpe en LS ?", [
+        ('Bonne','Bonne'),('A améliorer','À améliorer'),('Mauvaise','Mauvaise'),('Très mauvaise','Très mauvaise')
+      ], value=cr.ls_qualite_decoupe or '', required=True) }}
+      {% set ls_outils = cr.ls_outils_com | fromjson if cr.ls_outils_com else [] %}
+      {{ field_checkbox('ls_outils_com', "Outils de communication VAS présents TOUTE l'année ?", [
+        ('Etiquettes spécifique VAS','Étiquettes VAS'),('Affiches VAS','Affiches VAS'),
+        ('Réglette linéaire VAS','Réglette linéaire'),('Fiches recettes','Fiches recettes'),
+        ('Oriflamme / voile','Oriflamme / voile'),('Autres','Autres'),
+      ], values=ls_outils) }}
+      {{ field_radio('ls_autre_veau', "Autre veau que le V.A.S. en LS ?", [('OUI','OUI'),('NON','NON')], value=cr.ls_autre_veau or '', required=True) }}
+      <div id="field-ls-autre-veau-detail" class="{% if cr.ls_autre_veau != 'OUI' %}hidden{% endif %}">
+        <div class="field-row col-2">
+          <div class="field-group">
+            <label class="field-label">Marque / Dénomination</label>
+            <input class="field-input" type="text" name="ls_autre_veau_marque" value="{{ cr.ls_autre_veau_marque or '' }}">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Linéaire autre veau (m)</label>
+            <input class="field-input field-number" type="number" name="ls_autre_veau_lineaire" value="{{ cr.ls_autre_veau_lineaire or '' }}" min="0" step="0.5">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Rayon Trad ── #}
+    <div id="section-trad" class="sub-section {% if 'Rayon Coupe (Trad)' not in rayons %}hidden{% endif %}">
+      <div class="sub-section-title">Rayon Traditionnel (Coupe)</div>
+      {{ field_radio('trad_visibilite', "Visibilité du V.A.S. en traditionnel ?", [
+        ('Très Bonne','Très bonne'),('Bonne','Bonne'),('Mauvaise','Mauvaise'),('Très mauvaise','Très mauvaise')
+      ], value=cr.trad_visibilite or '') }}
+      {{ field_number('trad_lineaire', "Longueur du linéaire VAS (mètres)", value=cr.trad_lineaire, placeholder='ex. 2', min='0', max='50') }}
+      {{ field_radio('trad_qualite_decoupe', "Qualité de la découpe en traditionnel ?", [
+        ('Bonne','Bonne'),('A améliorer','À améliorer'),('Mauvaise','Mauvaise'),('Très mauvaise','Très mauvaise')
+      ], value=cr.trad_qualite_decoupe or '') }}
+      {% set trad_outils = cr.trad_outils_com | fromjson if cr.trad_outils_com else [] %}
+      {{ field_checkbox('trad_outils_com', "Outils de communication VAS présents TOUTE l'année ?", [
+        ('Etiquettes spécifique VAS','Étiquettes VAS'),('Affiches VAS','Affiches VAS'),
+        ('Réglette linéaire VAS','Réglette linéaire'),('Fiches recettes','Fiches recettes'),
+        ('Oriflamme / voile','Oriflamme / voile'),('Autres','Autres'),
+      ], values=trad_outils) }}
+      {{ field_radio('trad_autre_veau', "Autre veau que le V.A.S. en traditionnel ?", [('OUI','OUI'),('NON','NON')], value=cr.trad_autre_veau or '') }}
+      <div id="field-trad-autre-veau-detail" class="{% if cr.trad_autre_veau != 'OUI' %}hidden{% endif %}">
+        <div class="field-group">
+          <label class="field-label">Marque / Dénomination</label>
+          <input class="field-input" type="text" name="trad_autre_veau_marque" value="{{ cr.trad_autre_veau_marque or '' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ url_for('submit.etape', num=num-1) }}" class="btn btn-back">← Précédent</a>
+      <button type="submit" name="action" value="sauvegarder" class="btn btn-secondary">💾 Sauvegarder</button>
+      <button type="submit" name="action" value="suivant" class="btn btn-primary">Suivant →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

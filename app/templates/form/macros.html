@@ -1,0 +1,93 @@
+{% macro progress_bar(num, total) %}
+<div class="progress-steps">
+  {% set labels = ['Éleveur', 'Magasin', 'Rayons', 'Prix', 'Animation', 'Clients', 'Ressenti', 'Photos'] %}
+  {% for i in range(1, total+1) %}
+    <div class="step {% if i < num %}done{% elif i == num %}active{% endif %}">
+      <div class="step-dot">
+        {% if i < num %}✓{% else %}{{ i }}{% endif %}
+      </div>
+      <span class="step-label">{{ labels[i-1] }}</span>
+    </div>
+    {% if i < total %}<div class="step-line {% if i < num %}done{% endif %}"></div>{% endif %}
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro field_radio(name, label, options, value='', required=False) %}
+<div class="field-group">
+  <label class="field-label {% if required %}required{% endif %}">{{ label }}</label>
+  <div class="radio-group">
+    {% for opt_val, opt_label in options %}
+    <label class="radio-option {% if value == opt_val %}selected{% endif %}">
+      <input type="radio" name="{{ name }}" value="{{ opt_val }}"
+             {% if value == opt_val %}checked{% endif %}
+             {% if required %}required{% endif %}>
+      <span>{{ opt_label }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro field_checkbox(name, label, options, values=[], description='') %}
+<div class="field-group">
+  <label class="field-label">{{ label }}</label>
+  {% if description %}<p class="field-hint">{{ description }}</p>{% endif %}
+  <div class="checkbox-group">
+    {% for opt_val, opt_label in options %}
+    <label class="checkbox-option {% if opt_val in values %}selected{% endif %}">
+      <input type="checkbox" name="{{ name }}" value="{{ opt_val }}"
+             {% if opt_val in values %}checked{% endif %}>
+      <span>{{ opt_label }}</span>
+    </label>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro field_text(name, label, value='', placeholder='', required=False, type='text', hint='') %}
+<div class="field-group">
+  <label class="field-label {% if required %}required{% endif %}" for="{{ name }}">{{ label }}</label>
+  {% if hint %}<p class="field-hint">{{ hint }}</p>{% endif %}
+  <input class="field-input" type="{{ type }}" id="{{ name }}" name="{{ name }}"
+         value="{{ value or '' }}" placeholder="{{ placeholder }}"
+         {% if required %}required{% endif %}>
+</div>
+{% endmacro %}
+
+{% macro field_number(name, label, value='', placeholder='', min='', max='', step='0.1', hint='') %}
+<div class="field-group">
+  <label class="field-label" for="{{ name }}">{{ label }}</label>
+  {% if hint %}<p class="field-hint">{{ hint }}</p>{% endif %}
+  <input class="field-input field-number" type="number" id="{{ name }}" name="{{ name }}"
+         value="{{ value or '' }}" placeholder="{{ placeholder }}"
+         {% if min %}min="{{ min }}"{% endif %}
+         {% if max %}max="{{ max }}"{% endif %}
+         step="{{ step }}">
+</div>
+{% endmacro %}
+
+{% macro field_textarea(name, label, value='', placeholder='', rows=3, limit=200) %}
+<div class="field-group">
+  <label class="field-label" for="{{ name }}">{{ label }}</label>
+  <textarea class="field-input field-textarea" id="{{ name }}" name="{{ name }}"
+            rows="{{ rows }}" maxlength="{{ limit * 6 }}"
+            data-limit="{{ limit }}"
+            placeholder="{{ placeholder }}">{{ value or '' }}</textarea>
+  <span class="char-count">0 / {{ limit }} mots</span>
+</div>
+{% endmacro %}
+
+{% macro field_select(name, label, options, value='', required=False) %}
+<div class="field-group">
+  <label class="field-label {% if required %}required{% endif %}" for="{{ name }}">{{ label }}</label>
+  <div class="select-wrapper">
+    <select class="field-input field-select" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+      <option value="">— Choisir —</option>
+      {% for opt_val, opt_label in options %}
+      <option value="{{ opt_val }}" {% if value == opt_val %}selected{% endif %}>{{ opt_label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</div>
+{% endmacro %}

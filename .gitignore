@@ -1,0 +1,14 @@
+.env
+*.db
+*.sqlite3
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+app/uploads/*
+!app/uploads/.gitkeep
+*.log
+.DS_Store
+dist/
+build/

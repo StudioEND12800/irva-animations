@@ -1,0 +1,40 @@
+{% extends 'form/base.html' %}
+{% from 'form/macros.html' import progress_bar, field_radio, field_checkbox, field_textarea %}
+{% block title %}Étape 6/8 — Clients rencontrés{% endblock %}
+{% block content %}
+{{ progress_bar(num, total) }}
+<div class="form-card">
+  <h2 class="form-section-title"><span class="section-icon">👥</span>Clients / Consommateurs rencontrés</h2>
+  <form method="POST" action="{{ url_for('submit.etape', num=num) }}" novalidate>
+
+    {% set ages = cr.tranche_age | fromjson if cr.tranche_age else [] %}
+    {{ field_checkbox('tranche_age', "Tranche d'âge majoritairement rencontrée", [
+      ('18/25 ans','18 - 25 ans'),('25/40 ans','25 - 40 ans'),
+      ('40/60 ans','40 - 60 ans'),('+60 ans','+60 ans'),
+    ], values=ages, required=True) }}
+
+    {% set attitudes = cr.attitude_clients | fromjson if cr.attitude_clients else [] %}
+    {{ field_checkbox('attitude_clients', "Attitude des personnes rencontrées", [
+      ('Positive','Positive'),('Pas intéressé','Pas intéressé'),('Agressives','Agressives'),
+    ], values=attitudes, required=True) }}
+
+    {{ field_radio('clients_connaissaient_vas', "Les clients connaissaient-ils le V.A.S. ?", [
+      ('OUI','OUI'),('OUI, client fidèle','OUI, client fidèle'),('NON','NON'),
+    ], value=cr.clients_connaissaient_vas or '', required=True) }}
+
+    {% set questions = cr.type_questions | fromjson if cr.type_questions else [] %}
+    {{ field_checkbox('type_questions', "Type de questions posées", [
+      ('Elevage','Élevage'),('Abattage','Abattage'),('Cuisson / recette','Cuisson / recette'),
+      ('Environnement','Environnement'),('Pas de question','Pas de question'),
+    ], values=questions, required=True) }}
+
+    {{ field_textarea('precisions_clients', "Précisions sur les clients / consommateurs…", value=cr.precisions_clients, rows=4) }}
+
+    <div class="form-actions">
+      <a href="{{ url_for('submit.etape', num=num-1) }}" class="btn btn-back">← Précédent</a>
+      <button type="submit" name="action" value="sauvegarder" class="btn btn-secondary">💾 Sauvegarder</button>
+      <button type="submit" name="action" value="suivant" class="btn btn-primary">Suivant →</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
