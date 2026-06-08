@@ -116,7 +116,16 @@ def soumettre():
     cr = get_or_create_cr()
     if request.method == 'POST':
         # Sauvegarde finale
+        invalid_signature_file = _has_invalid_signature_file(request.files)
         _save_etape(cr, 8, request.form, request.files)
+
+        errors = _final_submission_errors(cr, invalid_signature_file)
+        if errors:
+            db.session.commit()
+            for error in errors:
+                flash(error, 'error')
+            return render_template('form/etape8.html', cr=cr, num=8, total=8, final=True)
+
         cr.statut = 'soumis'
         cr.submitted_at = datetime.utcnow()
         cr.prix_moyen_vas = cr.calc_prix_moyen_vas()
@@ -255,6 +264,28 @@ def _save_etape(cr, num, form, files):
                 photo_file.save(fpath)
                 p = Photo(cr_id=cr.id, filename=fname, original_name=photo_file.filename)
                 db.session.add(p)
+
+
+def _has_invalid_signature_file(files):
+    signature_file = files.get('signature_boucher')
+    return bool(
+        signature_file
+        and signature_file.filename
+        and not allowed_file(signature_file.filename)
+    )
+
+
+def _final_submission_errors(cr, invalid_signature_file=False):
+    errors = []
+
+    if invalid_signature_file:
+        errors.append("Le feuillet signé du chef boucher doit être au format image ou PDF.")
+    if not cr.signature_boucher_path:
+        errors.append("Ajoutez la photo ou le PDF du feuillet signé et tamponné par le chef boucher.")
+    if not cr.signature_eleveur_data or cr.signature_eleveur_data == 'data:,':
+        errors.append("Ajoutez votre signature avant d'envoyer le compte-rendu.")
+
+    return errors
 
 
 # ── Upload AJAX de photo ──────────────────────────────────────────────────────

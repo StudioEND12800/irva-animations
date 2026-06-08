@@ -37,10 +37,18 @@
       <div class="sub-section-title">Signature et tampon du chef boucher <span style="color:var(--red)">*</span></div>
       <p class="field-hint">Prenez en photo le feuillet signé et tamponnez par le chef boucher et téléchargez-la ici.</p>
       <div class="upload-zone" id="upload-zone-signature">
-        <input type="file" id="sig-boucher-input" name="signature_boucher" accept="image/*,application/pdf">
+        <input type="file" id="sig-boucher-input" name="signature_boucher" accept="image/*,application/pdf"
+               {% if not cr.signature_boucher_path %}required{% endif %}>
         <div class="upload-icon">📋</div>
         <p>Photo du feuillet signé (chef boucher)<br><strong>Obligatoire</strong></p>
       </div>
+      <p class="upload-status" id="sig-boucher-status">
+        {% if cr.signature_boucher_path %}
+          Fichier enregistré : {{ cr.signature_boucher_path }}
+        {% else %}
+          Aucun fichier sélectionné pour le moment.
+        {% endif %}
+      </p>
       {% if cr.signature_boucher_path %}
       <p style="font-size:12px;color:var(--green);margin-top:8px">✓ Fichier déjà envoyé</p>
       {% endif %}

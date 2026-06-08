@@ -92,6 +92,8 @@ function initUploadZone(zoneId, inputId, gridId) {
   const input = document.getElementById(inputId);
   const grid = document.getElementById(gridId);
   if (!zone || !input) return;
+  const isDeferredUpload = !grid;
+  const status = isDeferredUpload ? document.getElementById('sig-boucher-status') : null;
 
   zone.addEventListener('click', () => input.click());
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
@@ -99,9 +101,39 @@ function initUploadZone(zoneId, inputId, gridId) {
   zone.addEventListener('drop', e => {
     e.preventDefault();
     zone.classList.remove('drag-over');
+    if (isDeferredUpload) {
+      assignFilesToInput(input, e.dataTransfer.files);
+      updateDeferredStatus();
+      return;
+    }
     handleFiles(e.dataTransfer.files);
   });
-  input.addEventListener('change', () => handleFiles(input.files));
+  input.addEventListener('change', () => {
+    if (isDeferredUpload) {
+      updateDeferredStatus();
+      return;
+    }
+    handleFiles(input.files);
+  });
+
+  function assignFilesToInput(fileInput, files) {
+    if (!files?.length) return;
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(files[0]);
+      fileInput.files = dt.files;
+    } catch (error) {
+      console.error('File assignment error', error);
+    }
+  }
+
+  function updateDeferredStatus() {
+    if (!status) return;
+    const file = input.files?.[0];
+    status.textContent = file
+      ? `Fichier sélectionné : ${file.name}`
+      : 'Aucun fichier sélectionné pour le moment.';
+  }
 
   async function handleFiles(files) {
     for (const file of files) {
@@ -124,11 +156,13 @@ function initUploadZone(zoneId, inputId, gridId) {
       <img src="${data.url}" alt="${data.name}">
       <button type="button" class="remove-photo" data-id="${data.id}">×</button>
     `;
-    div.querySelector('.remove-photo').addEventListener('click', async () => {
-      div.remove();
-    });
+      div.querySelector('.remove-photo').addEventListener('click', async () => {
+        div.remove();
+      });
     grid.appendChild(div);
   }
+
+  updateDeferredStatus();
 }
 
 initUploadZone('upload-zone-photos', 'photos-input', 'photo-grid');

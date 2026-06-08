@@ -253,6 +253,11 @@ body {
 .upload-zone .upload-icon { font-size: 36px; margin-bottom: 8px; }
 .upload-zone p { font-size: 13px; color: var(--gray-600); }
 .upload-zone strong { color: var(--green); }
+.upload-status {
+  color: var(--gray-600);
+  font-size: 12px;
+  margin-top: 8px;
+}
 
 .photo-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
