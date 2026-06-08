@@ -32,11 +32,74 @@ import pandas as pd
 # Helpers reproduisant les fonctions Excel
 # ---------------------------------------------------------------------------
 
+def normalize_multiselect(text: object) -> str:
+    """
+    Normalise une valeur multi-choix Forminator avant tout test de présence.
+
+    Artefacts d'encodage couverts (observés sur les exports réels) :
+
+    Règle 1 — Séparateurs HTML : <br/> et <br> → ", "
+      Forminator v1.x stocke les choix multiples séparés par des balises HTML.
+      Ex : "Escalope<br/>Sauté<br/>Roti" → "Escalope, Sauté, Roti"
+
+    Règle 2 — Retours chariot Excel : _x000D_, \\r, \\n → ", "
+      Ex : "Escalope_x000D_\\nSauté" → "Escalope, Sauté"
+
+    Règle 3 — Artefact virgule-tiret : ,- → ", "
+      Forminator remplace parfois ", " interne à une option par ",-" lors
+      de l'export CSV (la virgule devient séparateur, l'espace devient tiret).
+      Ex : "OUI,-pendant-l'animation" → "OUI, pendant-l'animation"
+           "Publications..., Dépliant-publicitaire-qui-annonce-l'animation"
+           → "Publications..., Dépliant publicitaire qui annonce l'animation"
+
+    Règle 4 — Slug encoding : tirets résiduels → espaces
+      Les options longues peuvent être encodées en style slug-URL, tous les
+      espaces remplacés par des tirets (avant ou après règle 3).
+      Ex : "Libre-service-à-l'entrée-du-magasin-(ponctuellement)"
+           → "Libre service à l'entrée du magasin (ponctuellement)"
+      Sécurité : les tirets LÉGITIMES dans les options (ex : "libre-service",
+      "18/25 ans") sont aussi transformés en espaces, MAIS la normalisation
+      s'applique aussi à l'aiguille (needle) dans excel_contains, donc le
+      matching reste correct dans les deux sens.
+
+    Règle 5 — Espaces multiples → espace simple (nettoyage final).
+
+    POUR ÉTENDRE : ajouter une règle numérotée ici si un nouveau formulaire
+    introduit un nouvel artefact. La fonction est le point d'entrée unique pour
+    toute la normalisation multi-choix.
+    """
+    if pd.isna(text) or text == 0:
+        return ""
+    s = str(text).strip()
+    if not s or s == "nan":
+        return ""
+    # Règle 1 : séparateurs HTML
+    s = re.sub(r'<br\s*/?>', ', ', s, flags=re.IGNORECASE)
+    # Règle 2 : retours chariot Excel
+    s = re.sub(r'_x000D_|\r\n|\r|\n', ', ', s)
+    # Règle 3 : artefact virgule-tiret (doit précéder la règle 4)
+    s = s.replace(',-', ', ')
+    # Règle 4 : slug encoding — tirets résiduels → espaces
+    s = s.replace('-', ' ')
+    # Règle 5 : espaces multiples → simple
+    s = re.sub(r'  +', ' ', s).strip()
+    return s
+
+
 def excel_contains(text: object, needle: str) -> bool:
-    """ISNUMBER(FIND(needle, text)) — insensible à la casse non, case-sensitive."""
-    if pd.isna(text) or text == 0 or str(text).strip() == "":
+    """
+    ISNUMBER(FIND(needle, text)) avec normalisation Forminator des deux côtés.
+    Case-sensitive comme FIND() Excel. Les deux valeurs sont normalisées via
+    normalize_multiselect avant la comparaison, ce qui rend le matching robuste
+    face aux variantes d'encodage (voir normalize_multiselect).
+    """
+    norm = normalize_multiselect(text)
+    if not norm:
         return False
-    return str(needle) in str(text)
+    # Normaliser aussi l'aiguille (pour les needles contenant des tirets légitimes
+    # comme "Rayon libre-service (LS)" → "Rayon libre service (LS)")
+    norm_needle = normalize_multiselect(needle)
+    return norm_needle in norm
 
 
 def flag_if_contains(series: pd.Series, needle: str) -> pd.Series:
@@ -708,10 +771,11 @@ def build_global_summary(tc: pd.DataFrame, start: pd.Timestamp, end: pd.Timestam
     }
 
     # Échanges chef boucher (TC!EV-EY)
+    # Les valeurs doivent correspondre aux needles passées à flag_if_contains (TC!EV-EY)
     echanges = {
-        "amont":   _count_flag("echange_amont",   "OUI, en amont pour préparer l'animation (téléphone, mail, ...)"),
+        "amont":   _count_flag("echange_amont",   "OUI, en amont pour préparer l'animation"),
         "pendant": _count_flag("echange_pendant",  "OUI, pendant l'animation"),
-        "cloture": _count_flag("echange_cloture",  "OUI, en clôture de l'animation (bilan fait avec équipe)"),
+        "cloture": _count_flag("echange_cloture",  "OUI, en clôture de l'animation"),
         "non":     _count_flag("echange_non",      "NON"),
     }
 
