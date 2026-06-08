@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="fr">
+<body style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
+  <h2 style="color:#1f5f37">Votre compte-rendu a bien été enregistré</h2>
+  <p>Bonjour {{ cr.nom_prenom or 'à vous' }},</p>
+  <p>Votre compte-rendu pour <strong>{{ cr.nom_magasin or 'votre animation' }}</strong> a bien été transmis à l’IRVA{% if cr.filiere %} et à la filière <strong>{{ cr.filiere }}</strong>{% endif %}.</p>
+  <p>Le PDF récapitulatif est joint à ce message lorsque sa génération est disponible.</p>
+  <p>Merci pour votre retour terrain.</p>
+</body>
+</html>

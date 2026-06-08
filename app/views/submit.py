@@ -83,8 +83,15 @@ def etape(num):
         db.session.commit()
 
         if request.form.get('action') == 'sauvegarder':
-            flash('Brouillon sauvegardé. Vous pouvez reprendre avec le lien envoyé par e-mail.', 'success')
-            _envoyer_lien_reprise(cr)
+            mail_sent = _envoyer_lien_reprise(cr)
+            session['resume_notice'] = {
+                'token': cr.token,
+                'mail_sent': mail_sent,
+            }
+            if mail_sent:
+                flash('Brouillon sauvegardé. Le lien de reprise a été envoyé par e-mail.', 'success')
+            else:
+                flash('Brouillon sauvegardé. Le mail de reprise n’a pas pu être envoyé ; copiez le lien ci-dessous.', 'warning')
             return redirect(url_for('submit.etape', num=num))
 
         if num < 8:
@@ -92,7 +99,16 @@ def etape(num):
         else:
             return redirect(url_for('submit.soumettre'))
 
-    return render_template(f'form/etape{num}.html', cr=cr, num=num, total=8)
+    resume_notice = _resume_notice_payload(session.pop('resume_notice', None))
+    draft_resume = _resume_link_payload(cr) if cr.statut == 'brouillon' and cr.email else None
+    return render_template(
+        f'form/etape{num}.html',
+        cr=cr,
+        num=num,
+        total=8,
+        resume_notice=resume_notice,
+        draft_resume=draft_resume,
+    )
 
 
 @submit_bp.route('/soumettre', methods=['GET', 'POST'])
@@ -288,30 +304,33 @@ def _parse_float(s):
 
 def _envoyer_lien_reprise(cr):
     if not cr.email:
-        return
+        return False
     try:
         from flask_mail import Mail, Message
         mail = Mail(current_app)
-        url = url_for('submit.reprendre', token=cr.token, _external=True)
+        url = _resume_url(cr)
         msg = Message(
             subject='Votre compte-rendu IRVA — lien de reprise',
             recipients=[cr.email],
             html=render_template('emails/reprise.html', cr=cr, url=url),
         )
         mail.send(msg)
+        current_app.logger.info('Resume email sent for CR #%s to %s', cr.id, cr.email)
+        return True
     except Exception:
-        pass  # Ne pas bloquer si mail échoue
+        current_app.logger.exception('Resume email failed for CR #%s to %s', cr.id, cr.email)
+        return False
 
 
 def _envoyer_notifications(cr):
-    try:
-        from flask_mail import Mail, Message
-        mail = Mail(current_app)
-        irva_emails = current_app.config['IRVA_EMAILS']
-        dest = irva_emails.get(cr.filiere, irva_emails['Autre'])
-        pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], '..', cr.pdf_path) if cr.pdf_path else None
+    from flask_mail import Mail, Message
 
-        # Mail IRVA
+    mail = Mail(current_app)
+    irva_emails = current_app.config['IRVA_EMAILS']
+    dest = irva_emails.get(cr.filiere, irva_emails['Autre'])
+    pdf_path = os.path.join(current_app.config['UPLOAD_FOLDER'], cr.pdf_path) if cr.pdf_path else None
+
+    try:
         msg_irva = Message(
             subject=f'Compte-rendu Animation — {cr.nom_magasin} — {cr.nom_prenom}',
             recipients=[e.strip() for e in dest.split(',')],
@@ -321,9 +340,12 @@ def _envoyer_notifications(cr):
             with open(pdf_path, 'rb') as fp:
                 msg_irva.attach(f'CR_{cr.nom_magasin}.pdf', 'application/pdf', fp.read())
         mail.send(msg_irva)
+        current_app.logger.info('IRVA notification sent for CR #%s to %s', cr.id, dest)
+    except Exception:
+        current_app.logger.exception('IRVA notification failed for CR #%s', cr.id)
 
-        # Mail éleveur
-        if cr.email:
+    if cr.email:
+        try:
             msg_elev = Message(
                 subject=f'Votre compte-rendu "{cr.nom_magasin}" a bien été enregistré',
                 recipients=[cr.email],
@@ -333,5 +355,28 @@ def _envoyer_notifications(cr):
                 with open(pdf_path, 'rb') as fp:
                     msg_elev.attach(f'CR_{cr.nom_magasin}.pdf', 'application/pdf', fp.read())
             mail.send(msg_elev)
-    except Exception:
-        pass
+            current_app.logger.info('Farmer confirmation sent for CR #%s to %s', cr.id, cr.email)
+        except Exception:
+            current_app.logger.exception('Farmer confirmation failed for CR #%s to %s', cr.id, cr.email)
+
+
+def _resume_url(cr):
+    return url_for('submit.reprendre', token=cr.token, _external=True)
+
+
+def _resume_link_payload(cr):
+    return {
+        'token': cr.token,
+        'url': _resume_url(cr),
+        'mail_sent': None,
+    }
+
+
+def _resume_notice_payload(notice):
+    if not notice or not notice.get('token'):
+        return None
+    return {
+        'token': notice['token'],
+        'url': url_for('submit.reprendre', token=notice['token'], _external=True),
+        'mail_sent': bool(notice.get('mail_sent')),
+    }

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="fr">
+<body style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
+  <h2 style="color:#1f5f37">Nouveau compte-rendu d'animation</h2>
+  <p>Un nouveau compte-rendu a été soumis.</p>
+  <ul>
+    <li>Éleveur·se : {{ cr.nom_prenom or '—' }}</li>
+    <li>Filière : {{ cr.filiere or '—' }}</li>
+    <li>Magasin : {{ cr.nom_magasin or '—' }}</li>
+    <li>Enseigne : {{ cr.enseigne or '—' }}</li>
+    <li>Date premier jour : {{ cr.date_premier_jour.strftime('%d/%m/%Y') if cr.date_premier_jour else '—' }}</li>
+    <li>Référence : {{ cr.ref_animation or '—' }}</li>
+  </ul>
+  <p>Le PDF du compte-rendu est joint lorsque sa génération est disponible.</p>
+</body>
+</html>

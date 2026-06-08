@@ -28,6 +28,33 @@
       {% endfor %}
     {% endwith %}
 
+    {% set active_resume = resume_notice or draft_resume %}
+    {% if active_resume %}
+      <div class="resume-box">
+        <div class="resume-box-title">
+          {% if resume_notice and not resume_notice.mail_sent %}
+            Lien de reprise à conserver
+          {% else %}
+            Lien de reprise du brouillon
+          {% endif %}
+        </div>
+        <p class="resume-box-text">
+          {% if resume_notice and not resume_notice.mail_sent %}
+            Le mail n’a pas pu partir. Copiez ce lien ou ce code avant de fermer la page.
+          {% elif resume_notice and resume_notice.mail_sent %}
+            Gardez aussi ce lien sous la main si vous reprenez plus tard depuis un autre appareil.
+          {% else %}
+            Vous pouvez reprendre ce brouillon à tout moment avec ce lien ou ce code.
+          {% endif %}
+        </p>
+        <div class="resume-box-row">
+          <input class="resume-box-input" type="text" readonly value="{{ active_resume.url }}">
+          <button type="button" class="btn btn-secondary resume-copy-btn" data-copy="{{ active_resume.url }}">Copier</button>
+        </div>
+        <p class="resume-box-code">Code de reprise : <code>{{ active_resume.token }}</code></p>
+      </div>
+    {% endif %}
+
     {% block content %}{% endblock %}
   </main>
 
@@ -36,6 +63,20 @@
   </footer>
 
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    document.querySelectorAll('.resume-copy-btn').forEach(button => {
+      button.addEventListener('click', async () => {
+        const value = button.getAttribute('data-copy');
+        try {
+          await navigator.clipboard.writeText(value);
+          button.textContent = 'Copié';
+          setTimeout(() => { button.textContent = 'Copier'; }, 1800);
+        } catch (error) {
+          button.textContent = 'À copier';
+        }
+      });
+    });
+  </script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

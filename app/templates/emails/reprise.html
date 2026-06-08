@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="fr">
+<body style="font-family:Arial,sans-serif;line-height:1.5;color:#1f2937">
+  <h2 style="color:#1f5f37">Reprendre votre compte-rendu IRVA</h2>
+  <p>Bonjour {{ cr.nom_prenom or 'à vous' }},</p>
+  <p>Votre brouillon pour {% if cr.nom_magasin %}<strong>{{ cr.nom_magasin }}</strong>{% else %}votre animation{% endif %} a bien été sauvegardé.</p>
+  <p>
+    Reprenez votre saisie ici :
+    <a href="{{ url }}">{{ url }}</a>
+  </p>
+  <p>Code de reprise : <strong>{{ cr.token }}</strong></p>
+  <p style="color:#6b7280;font-size:13px">Conservez ce message jusqu’à l’envoi final du formulaire.</p>
+</body>
+</html>

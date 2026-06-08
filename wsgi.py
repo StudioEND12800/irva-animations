@@ -29,6 +29,13 @@ def _load_secret_key(base_dir):
     return key
 
 
+def _env_bool(name, default=False):
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
 def create_app():
     base_dir = os.path.dirname(__file__)
     app = Flask(__name__, template_folder='app/templates', static_folder='app/static')
@@ -39,12 +46,14 @@ def create_app():
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         UPLOAD_FOLDER=os.path.join(base_dir, 'app', 'uploads'),
         MAX_CONTENT_LENGTH=50 * 1024 * 1024,  # 50 MB
-        MAIL_SERVER=os.environ.get('MAIL_SERVER', 'smtp.o2switch.net'),
-        MAIL_PORT=int(os.environ.get('MAIL_PORT', 465)),
-        MAIL_USE_SSL=True,
-        MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
-        MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
+        MAIL_SERVER=os.environ.get('MAIL_SERVER', 'localhost'),
+        MAIL_PORT=int(os.environ.get('MAIL_PORT', 25)),
+        MAIL_USE_SSL=_env_bool('MAIL_USE_SSL', False),
+        MAIL_USE_TLS=_env_bool('MAIL_USE_TLS', False),
+        MAIL_USERNAME=os.environ.get('MAIL_USERNAME') or None,
+        MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD') or None,
         MAIL_DEFAULT_SENDER=os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@veau-aveyron.fr'),
+        PREFERRED_URL_SCHEME=os.environ.get('PREFERRED_URL_SCHEME', 'https'),
         ADMIN_EMAIL=os.environ.get('ADMIN_EMAIL', 'contact@irva.fr'),
         ADMIN_PASSWORD=os.environ.get('ADMIN_PASSWORD', 'irva2025'),
         IRVA_EMAILS={
