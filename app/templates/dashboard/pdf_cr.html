@@ -6,37 +6,29 @@
   <style>
     @page {
       size: A4;
-      margin: 18mm 14mm;
+      margin: 14mm 14mm 12mm 14mm;
     }
-
     body {
       color: #1f2937;
       font-family: Helvetica, Arial, sans-serif;
-      font-size: 10pt;
-      line-height: 1.35;
-    }
-
-    h1, h2, h3, p {
+      font-size: 9.5pt;
+      line-height: 1.3;
       margin: 0;
     }
+    h1, h2, h3, p { margin: 0; }
 
+    /* ── En-tête ── */
     .header {
-      border-bottom: 2px solid #1f5f37;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
+      border-bottom: 2.5px solid #1f5f37;
+      margin-bottom: 10px;
+      padding-bottom: 7px;
     }
-
     .header h1 {
       color: #1f5f37;
-      font-size: 18pt;
-      margin-bottom: 4px;
+      font-size: 15pt;
+      margin-bottom: 3px;
     }
-
-    .meta {
-      color: #4b5563;
-      font-size: 9pt;
-    }
-
+    .meta { color: #4b5563; font-size: 8.5pt; }
     .status {
       background: #e6f4ea;
       border: 1px solid #b6d7bc;
@@ -44,264 +36,274 @@
       display: inline-block;
       font-size: 8pt;
       font-weight: bold;
-      margin-top: 8px;
-      padding: 3px 8px;
+      margin-top: 5px;
+      padding: 2px 7px;
       text-transform: uppercase;
     }
 
-    .section {
-      margin-top: 14px;
-    }
+    /* ── Blocs 2 colonnes côte à côte ── */
+    .row2 { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+    .row2 td { vertical-align: top; padding: 0; }
+    .row2 .left  { width: 50%; padding-right: 5px; }
+    .row2 .right { width: 50%; padding-left: 5px; }
 
+    /* ── Section ── */
+    .section {
+      margin-bottom: 8px;
+      page-break-inside: avoid;
+    }
     .section h2 {
       background: #f3f4f6;
-      border-left: 4px solid #1f5f37;
+      border-left: 3px solid #1f5f37;
       color: #111827;
-      font-size: 11pt;
-      margin-bottom: 6px;
-      padding: 6px 8px;
+      font-size: 9.5pt;
+      font-weight: bold;
+      margin-bottom: 3px;
+      padding: 4px 7px;
     }
 
-    table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-
-    td {
+    /* ── Tableau de données ── */
+    .data-table { border-collapse: collapse; width: 100%; }
+    .data-table td {
       border-bottom: 1px solid #e5e7eb;
-      padding: 5px 6px;
+      padding: 3px 5px;
       vertical-align: top;
     }
-
-    td.label {
+    .data-table td.lbl {
       color: #374151;
       font-weight: bold;
-      width: 34%;
+      width: 38%;
     }
 
-    .grid {
-      width: 100%;
+    /* ── Tableau prix 4 colonnes (Morceau / VAS / Autre) ── */
+    .prix-table { border-collapse: collapse; width: 100%; }
+    .prix-table th {
+      background: #f3f4f6;
+      border-bottom: 1px solid #d1d5db;
+      font-size: 8.5pt;
+      padding: 3px 5px;
+      text-align: left;
+    }
+    .prix-table td {
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 8.5pt;
+      padding: 3px 5px;
+    }
+    .prix-table td.morceau { color: #374151; font-weight: bold; width: 30%; }
+    .prix-table td.val { width: 35%; }
+    .prix-moy {
+      background: #e6f4ea;
+      font-weight: bold;
+      font-size: 9pt;
+      padding: 4px 6px;
+      margin-bottom: 4px;
     }
 
-    .grid .col {
-      vertical-align: top;
-      width: 50%;
-    }
-
-    .grid .col-left {
-      padding-right: 8px;
-    }
-
-    .grid .col-right {
-      padding-left: 8px;
-    }
-
+    /* ── Note texte libre ── */
     .note {
       background: #f9fafb;
       border: 1px solid #e5e7eb;
-      margin-top: 6px;
-      padding: 8px;
+      font-size: 8.5pt;
+      margin-top: 4px;
+      padding: 5px 7px;
       white-space: pre-wrap;
     }
 
-    .signature-grid {
-      border-collapse: separate;
-      border-spacing: 8px 0;
-      margin-top: 6px;
-      width: 100%;
-    }
-
-    .signature-grid td {
-      border: none;
-      padding: 0;
-      vertical-align: top;
-    }
-
-    .signature-card {
+    /* ── Signatures ── */
+    .sig-wrap { border-collapse: collapse; width: 100%; margin-top: 5px; }
+    .sig-wrap td { padding: 0 4px 0 0; vertical-align: top; width: 50%; }
+    .sig-wrap td:last-child { padding: 0 0 0 4px; }
+    .sig-card {
       border: 1px solid #d1d5db;
-      padding: 8px;
+      padding: 5px;
     }
-
-    .signature-title {
-      color: #374151;
-      font-size: 9pt;
-      font-weight: bold;
-      margin-bottom: 6px;
-    }
-
-    .signature-box {
+    .sig-title { color: #374151; font-size: 8.5pt; font-weight: bold; margin-bottom: 4px; }
+    .sig-box {
       border: 1px solid #e5e7eb;
-      height: 92px;
-      padding: 6px;
+      height: 70px;
       text-align: center;
+      padding: 4px;
     }
+    .sig-box img { max-height: 60px; max-width: 100%; }
 
-    .signature-box img {
-      max-height: 78px;
-      max-width: 100%;
-    }
-
-    .small {
-      color: #6b7280;
-      font-size: 8.5pt;
-    }
+    .small { color: #6b7280; font-size: 8pt; }
   </style>
 </head>
 <body>
+
+  <!-- En-tête -->
   <div class="header">
     <h1>Compte-rendu animation magasin</h1>
     <p class="meta">
       CR #{{ cr.id }}
       {% if cr.ref_animation %} | Ref. {{ cr.ref_animation }}{% endif %}
       | Cree le {{ cr.created_at.strftime('%d/%m/%Y %H:%M') if cr.created_at else '—' }}
-      {% if cr.submitted_at %}| Soumis le {{ cr.submitted_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+      {% if cr.submitted_at %} | Soumis le {{ cr.submitted_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
     </p>
     <div class="status">{{ cr.statut or 'brouillon' }}</div>
   </div>
 
-  <table class="grid">
+  <!-- Ligne 1 : Eleveur + Magasin -->
+  <table class="row2">
     <tr>
-      <td class="col col-left">
+      <td class="left">
         <div class="section">
           <h2>Eleveur</h2>
-          <table>
-            <tr><td class="label">Nom / Prenom</td><td>{{ cr.nom_prenom or '—' }}</td></tr>
-            <tr><td class="label">Numero de cheptel</td><td>{{ cr.num_cheptel or '—' }}</td></tr>
-            <tr><td class="label">Email</td><td>{{ cr.email or '—' }}</td></tr>
-            <tr><td class="label">Filiere</td><td>{{ cr.filiere or '—' }}</td></tr>
-            <tr><td class="label">Animation</td><td>{{ cr.animation_solo or '—' }}</td></tr>
-            <tr><td class="label">Co-eleveur·se</td><td>{{ cr.nom_coeleveuse or '—' }}</td></tr>
+          <table class="data-table">
+            <tr><td class="lbl">Nom / Prenom</td><td>{{ cr.nom_prenom or '—' }}</td></tr>
+            <tr><td class="lbl">Cheptel</td><td>{{ cr.num_cheptel or '—' }}</td></tr>
+            <tr><td class="lbl">Email</td><td>{{ cr.email or '—' }}</td></tr>
+            <tr><td class="lbl">Filiere</td><td>{{ cr.filiere or '—' }}</td></tr>
+            <tr><td class="lbl">Animation</td><td>{{ cr.animation_solo or '—' }}</td></tr>
+            {% if cr.nom_coeleveuse %}<tr><td class="lbl">Co-eleveur·se</td><td>{{ cr.nom_coeleveuse }}</td></tr>{% endif %}
           </table>
-        </div>
-
-        <div class="section">
-          <h2>Magasin</h2>
-          <table>
-            <tr><td class="label">Enseigne</td><td>{{ cr.enseigne or '—' }}</td></tr>
-            <tr><td class="label">Nom magasin</td><td>{{ cr.nom_magasin or '—' }}</td></tr>
-            <tr><td class="label">Commune</td><td>{{ cr.commune or '—' }}</td></tr>
-            <tr><td class="label">Code postal</td><td>{{ cr.code_postal or '—' }}</td></tr>
-            <tr><td class="label">Region</td><td>{{ cr.region or '—' }}</td></tr>
-            <tr><td class="label">Chef boucher</td><td>{{ cr.nom_chef_boucher or '—' }}</td></tr>
-            <tr><td class="label">Anciennete chef boucher</td><td>{{ cr.anciennete_chef_boucher or '—' }}</td></tr>
-          </table>
-        </div>
-
-        <div class="section">
-          <h2>Animation</h2>
-          <table>
-            <tr><td class="label">Premier jour</td><td>{{ cr.date_premier_jour.strftime('%d/%m/%Y') if cr.date_premier_jour else '—' }}</td></tr>
-            <tr><td class="label">Dernier jour</td><td>{{ cr.date_dernier_jour.strftime('%d/%m/%Y') if cr.date_dernier_jour else '—' }}</td></tr>
-            <tr><td class="label">Duree</td><td>{{ cr.nb_jours }} jour(s)</td></tr>
-            <tr><td class="label">Rayons presents</td><td>{{ data.rayons_presents | join(', ') or '—' }}</td></tr>
-            <tr><td class="label">Emplacement</td><td>{{ data.emplacement_animation | join(', ') or '—' }}</td></tr>
-            <tr><td class="label">Frequentation</td><td>{{ cr.frequentation or '—' }}</td></tr>
-            <tr><td class="label">Approvisionnement</td><td>{{ cr.approvisionnement or '—' }}</td></tr>
-            <tr><td class="label">Ruptures</td><td>{{ cr.ruptures or '—' }}</td></tr>
-            <tr><td class="label">Ventes supplementaires</td><td>{{ cr.ventes_supplementaires or '—' }}</td></tr>
-            <tr><td class="label">Incident</td><td>{{ cr.incident or '—' }}</td></tr>
-          </table>
-          {% if cr.precisions_animation %}
-          <div class="note">{{ cr.precisions_animation }}</div>
-          {% endif %}
         </div>
       </td>
-
-      <td class="col col-right">
+      <td class="right">
         <div class="section">
-          <h2>Prix</h2>
-          <table>
-            <tr><td class="label">Prix moyen VAS</td><td>{{ ('%.2f €/kg'|format(cr.prix_moyen_vas)) if cr.prix_moyen_vas else '—' }}</td></tr>
-            <tr><td class="label">Prix moyen autre veau</td><td>{{ ('%.2f €/kg'|format(cr.prix_moyen_autre)) if cr.prix_moyen_autre else '—' }}</td></tr>
-            <tr><td class="label">Escalope VAS</td><td>{{ ('%.2f €'|format(cr.prix_vas_escalope)) if cr.prix_vas_escalope else '—' }}</td></tr>
-            <tr><td class="label">Saute VAS</td><td>{{ ('%.2f €'|format(cr.prix_vas_saute)) if cr.prix_vas_saute else '—' }}</td></tr>
-            <tr><td class="label">Roti VAS</td><td>{{ ('%.2f €'|format(cr.prix_vas_roti)) if cr.prix_vas_roti else '—' }}</td></tr>
-            <tr><td class="label">Tendron VAS</td><td>{{ ('%.2f €'|format(cr.prix_vas_tendron)) if cr.prix_vas_tendron else '—' }}</td></tr>
-            <tr><td class="label">Jarret VAS</td><td>{{ ('%.2f €'|format(cr.prix_vas_jarret)) if cr.prix_vas_jarret else '—' }}</td></tr>
-            <tr><td class="label">Hache VAS</td><td>{{ ('%.2f €'|format(cr.prix_vas_hache)) if cr.prix_vas_hache else '—' }}</td></tr>
-            <tr><td class="label">Escalope autre</td><td>{{ ('%.2f €'|format(cr.prix_autre_escalope)) if cr.prix_autre_escalope else '—' }}</td></tr>
-            <tr><td class="label">Saute autre</td><td>{{ ('%.2f €'|format(cr.prix_autre_saute)) if cr.prix_autre_saute else '—' }}</td></tr>
-            <tr><td class="label">Roti autre</td><td>{{ ('%.2f €'|format(cr.prix_autre_roti)) if cr.prix_autre_roti else '—' }}</td></tr>
-            <tr><td class="label">Tendron autre</td><td>{{ ('%.2f €'|format(cr.prix_autre_tendron)) if cr.prix_autre_tendron else '—' }}</td></tr>
-            <tr><td class="label">Jarret autre</td><td>{{ ('%.2f €'|format(cr.prix_autre_jarret)) if cr.prix_autre_jarret else '—' }}</td></tr>
-            <tr><td class="label">Hache autre</td><td>{{ ('%.2f €'|format(cr.prix_autre_hache)) if cr.prix_autre_hache else '—' }}</td></tr>
+          <h2>Magasin</h2>
+          <table class="data-table">
+            <tr><td class="lbl">Enseigne</td><td>{{ cr.enseigne or '—' }}</td></tr>
+            <tr><td class="lbl">Nom magasin</td><td>{{ cr.nom_magasin or '—' }}</td></tr>
+            <tr><td class="lbl">Commune / CP</td><td>{{ cr.commune or '—' }}{% if cr.code_postal %} — {{ cr.code_postal }}{% endif %}</td></tr>
+            <tr><td class="lbl">Region</td><td>{{ cr.region or '—' }}</td></tr>
+            <tr><td class="lbl">Chef boucher</td><td>{{ cr.nom_chef_boucher or '—' }}</td></tr>
+            {% if cr.anciennete_chef_boucher %}<tr><td class="lbl">Anciennete</td><td>{{ cr.anciennete_chef_boucher }}</td></tr>{% endif %}
           </table>
-          {% if cr.commentaire_prix %}
-          <div class="note">{{ cr.commentaire_prix }}</div>
-          {% endif %}
-        </div>
-
-        <div class="section">
-          <h2>Clients et ressenti</h2>
-          <table>
-            <tr><td class="label">Tranche age</td><td>{{ data.tranche_age | join(', ') or '—' }}</td></tr>
-            <tr><td class="label">Attitude clients</td><td>{{ data.attitude_clients | join(', ') or '—' }}</td></tr>
-            <tr><td class="label">Clients connaissaient VAS</td><td>{{ cr.clients_connaissaient_vas or '—' }}</td></tr>
-            <tr><td class="label">Types de questions</td><td>{{ data.type_questions | join(', ') or '—' }}</td></tr>
-            <tr><td class="label">Ressenti mise en place</td><td>{{ cr.ressenti_mise_en_place or '—' }}</td></tr>
-            <tr><td class="label">Ressenti accroche</td><td>{{ cr.ressenti_accroche or '—' }}</td></tr>
-            <tr><td class="label">Ressenti argumentaire</td><td>{{ cr.ressenti_argumentaire or '—' }}</td></tr>
-            <tr><td class="label">Kit IRVA</td><td>{{ cr.kit_irva or '—' }}</td></tr>
-            <tr><td class="label">Kit Interbev</td><td>{{ cr.kit_interbev or '—' }}</td></tr>
-            <tr><td class="label">Echanges chef boucher</td><td>{{ data.echanges_chef_boucher | join(', ') or '—' }}</td></tr>
-          </table>
-          {% if cr.precisions_clients %}
-          <div class="note">{{ cr.precisions_clients }}</div>
-          {% endif %}
-          {% if cr.precisions_ressenti %}
-          <div class="note">{{ cr.precisions_ressenti }}</div>
-          {% endif %}
-        </div>
-
-        <div class="section">
-          <h2>Pieces jointes et commentaires</h2>
-          <table>
-            <tr><td class="label">Photos animation</td><td>{{ cr.photos|length }}</td></tr>
-            <tr><td class="label">Signature eleveur</td><td>{{ 'Oui' if cr.signature_eleveur_data else 'Non' }}</td></tr>
-            <tr><td class="label">Signature boucher</td><td>{{ 'Oui' if cr.signature_boucher_path else 'Non' }}</td></tr>
-            <tr><td class="label">Incident majeur</td><td>{{ cr.incident_majeur or '—' }}</td></tr>
-          </table>
-          <table class="signature-grid">
-            <tr>
-              <td>
-                <div class="signature-card">
-                  <div class="signature-title">Signature eleveur·se</div>
-                  <div class="signature-box">
-                    {% if pdf_assets.signature_eleveur_uri %}
-                    <img src="{{ pdf_assets.signature_eleveur_uri }}" alt="Signature eleveur">
-                    {% else %}
-                    <span class="small">Aucune signature stockee</span>
-                    {% endif %}
-                  </div>
-                </div>
-              </td>
-              <td>
-                <div class="signature-card">
-                  <div class="signature-title">Signature / tampon chef boucher</div>
-                  <div class="signature-box">
-                    {% if pdf_assets.signature_boucher_uri %}
-                    <img src="{{ pdf_assets.signature_boucher_uri }}" alt="Signature boucher">
-                    {% else %}
-                    <span class="small">Aucune signature stockee</span>
-                    {% endif %}
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </table>
-          {% if cr.remarques_chef_boucher %}
-          <div class="note"><strong>Remarques chef boucher</strong><br>{{ cr.remarques_chef_boucher }}</div>
-          {% endif %}
-          {% if cr.avis_eleveur %}
-          <div class="note"><strong>Avis eleveur·se</strong><br>{{ cr.avis_eleveur }}</div>
-          {% endif %}
         </div>
       </td>
     </tr>
   </table>
 
-  <p class="small" style="margin-top:12px">
-    Ce PDF reprend uniquement les donnees stockees dans l'application au moment de la generation.
+  <!-- Ligne 2 : Animation + Clients/Ressenti -->
+  <table class="row2">
+    <tr>
+      <td class="left">
+        <div class="section">
+          <h2>Animation</h2>
+          <table class="data-table">
+            <tr><td class="lbl">Periode</td><td>
+              {{ cr.date_premier_jour.strftime('%d/%m/%Y') if cr.date_premier_jour else '—' }}
+              {% if cr.date_dernier_jour and cr.date_dernier_jour != cr.date_premier_jour %} → {{ cr.date_dernier_jour.strftime('%d/%m/%Y') }}{% endif %}
+              ({{ cr.nb_jours }} j.)
+            </td></tr>
+            <tr><td class="lbl">Rayons</td><td>{{ data.rayons_presents | join(', ') or '—' }}</td></tr>
+            <tr><td class="lbl">Emplacement</td><td>{{ data.emplacement_animation | join(', ') or '—' }}</td></tr>
+            <tr><td class="lbl">Frequentation</td><td>{{ cr.frequentation or '—' }}</td></tr>
+            <tr><td class="lbl">Appro.</td><td>{{ cr.approvisionnement or '—' }}</td></tr>
+            <tr><td class="lbl">Ruptures</td><td>{{ cr.ruptures or '—' }}</td></tr>
+            <tr><td class="lbl">Ventes suppl.</td><td>{{ cr.ventes_supplementaires or '—' }}</td></tr>
+            <tr><td class="lbl">Incident</td><td>{{ cr.incident or '—' }}</td></tr>
+          </table>
+          {% if cr.precisions_animation %}<div class="note">{{ cr.precisions_animation }}</div>{% endif %}
+        </div>
+      </td>
+      <td class="right">
+        <div class="section">
+          <h2>Clients et ressenti</h2>
+          <table class="data-table">
+            <tr><td class="lbl">Tranche age</td><td>{{ data.tranche_age | join(', ') or '—' }}</td></tr>
+            <tr><td class="lbl">Attitude</td><td>{{ data.attitude_clients | join(', ') or '—' }}</td></tr>
+            <tr><td class="lbl">Connaissaient VAS</td><td>{{ cr.clients_connaissaient_vas or '—' }}</td></tr>
+            <tr><td class="lbl">Questions</td><td>{{ data.type_questions | join(', ') or '—' }}</td></tr>
+            <tr><td class="lbl">Ressenti mise en place</td><td>{{ cr.ressenti_mise_en_place or '—' }}</td></tr>
+            <tr><td class="lbl">Ressenti accroche</td><td>{{ cr.ressenti_accroche or '—' }}</td></tr>
+            <tr><td class="lbl">Ressenti argumentaire</td><td>{{ cr.ressenti_argumentaire or '—' }}</td></tr>
+            <tr><td class="lbl">Kit IRVA</td><td>{{ cr.kit_irva or '—' }}</td></tr>
+            {% if cr.kit_interbev %}<tr><td class="lbl">Kit Interbev</td><td>{{ cr.kit_interbev }}</td></tr>{% endif %}
+            <tr><td class="lbl">Echanges CB</td><td>{{ data.echanges_chef_boucher | join(', ') or '—' }}</td></tr>
+          </table>
+          {% if cr.precisions_clients %}<div class="note">{{ cr.precisions_clients }}</div>{% endif %}
+          {% if cr.precisions_ressenti %}<div class="note">{{ cr.precisions_ressenti }}</div>{% endif %}
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Prix : tableau compact morceau / VAS / Autre -->
+  {% set has_prix = cr.prix_vas_escalope or cr.prix_vas_saute or cr.prix_vas_roti or cr.prix_vas_tendron or cr.prix_vas_jarret or cr.prix_vas_hache or cr.prix_autre_escalope or cr.prix_autre_saute %}
+  <div class="section">
+    <h2>Prix relevés</h2>
+    {% if cr.prix_moyen_vas or cr.prix_moyen_autre %}
+    <table class="row2" style="margin-bottom:4px">
+      <tr>
+        {% if cr.prix_moyen_vas %}<td class="left"><div class="prix-moy">Prix moy. VAS : {{ '%.2f'|format(cr.prix_moyen_vas) }} €/kg</div></td>{% endif %}
+        {% if cr.prix_moyen_autre %}<td class="right"><div class="prix-moy">Prix moy. autre veau : {{ '%.2f'|format(cr.prix_moyen_autre) }} €/kg</div></td>{% endif %}
+      </tr>
+    </table>
+    {% endif %}
+    {% if has_prix %}
+    <table class="prix-table">
+      <tr><th>Morceau</th><th>VAS (€/kg)</th><th>Autre veau (€/kg)</th></tr>
+      {% for morceau, vas_val, autre_val in [
+        ('Escalope',  cr.prix_vas_escalope,  cr.prix_autre_escalope),
+        ('Saute',     cr.prix_vas_saute,     cr.prix_autre_saute),
+        ('Roti',      cr.prix_vas_roti,      cr.prix_autre_roti),
+        ('Tendron',   cr.prix_vas_tendron,   cr.prix_autre_tendron),
+        ('Jarret',    cr.prix_vas_jarret,    cr.prix_autre_jarret),
+        ('Hache',     cr.prix_vas_hache,     cr.prix_autre_hache),
+      ] %}
+      {% if vas_val or autre_val %}
+      <tr>
+        <td class="morceau">{{ morceau }}</td>
+        <td class="val">{{ '%.2f'|format(vas_val) if vas_val else '—' }}</td>
+        <td class="val">{{ '%.2f'|format(autre_val) if autre_val else '—' }}</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </table>
+    {% else %}
+    <p class="small" style="padding:4px 5px">Aucun prix renseigne.</p>
+    {% endif %}
+    {% if cr.commentaire_prix %}<div class="note">{{ cr.commentaire_prix }}</div>{% endif %}
+  </div>
+
+  <!-- Signatures et pièces jointes -->
+  <div class="section">
+    <h2>Signatures et pieces jointes</h2>
+    <table class="data-table" style="margin-bottom:5px">
+      <tr><td class="lbl">Photos animation</td><td>{{ cr.photos|length }} photo(s)</td>
+          <td class="lbl">Incident majeur</td><td>{{ cr.incident_majeur or '—' }}</td></tr>
+    </table>
+    <table class="sig-wrap">
+      <tr>
+        <td>
+          <div class="sig-card">
+            <div class="sig-title">Signature eleveur·se</div>
+            <div class="sig-box">
+              {% if pdf_assets.signature_eleveur_uri %}
+              <img src="{{ pdf_assets.signature_eleveur_uri }}" alt="Signature eleveur">
+              {% else %}
+              <span class="small">Aucune signature</span>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="sig-card">
+            <div class="sig-title">Signature / tampon chef boucher</div>
+            <div class="sig-box">
+              {% if pdf_assets.signature_boucher_uri %}
+              <img src="{{ pdf_assets.signature_boucher_uri }}" alt="Signature boucher">
+              {% else %}
+              <span class="small">Aucune signature</span>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+    {% if cr.remarques_chef_boucher %}
+    <div class="note"><strong>Remarques chef boucher :</strong> {{ cr.remarques_chef_boucher }}</div>
+    {% endif %}
+    {% if cr.avis_eleveur %}
+    <div class="note"><strong>Avis eleveur·se :</strong> {{ cr.avis_eleveur }}</div>
+    {% endif %}
+  </div>
+
+  <p class="small" style="margin-top:6px;border-top:1px solid #e5e7eb;padding-top:4px">
+    Genere le {{ now.strftime('%d/%m/%Y %H:%M') if now is defined else '' }} — donnees issues de l'application au moment de la generation.
   </p>
+
 </body>
 </html>
