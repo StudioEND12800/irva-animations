@@ -77,6 +77,7 @@
           <th>Région</th>
           <th>Statut</th>
           <th>Fiche</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -89,10 +90,16 @@
           <td>{{ cr.region or '—' }}</td>
           <td><span class="badge badge-{{ cr.statut }}">{{ cr.statut }}</span></td>
           <td><a href="{{ url_for('dashboard.detail', cr_id=cr.id) }}" class="table-link">Ouvrir</a></td>
+          <td class="td-actions">
+            <a href="{{ url_for('dashboard.detail', cr_id=cr.id) }}" class="btn-action btn-action-edit" title="Modifier">&#9998;</a>
+            <form method="POST" action="{{ url_for('dashboard.supprimer', cr_id=cr.id) }}" style="display:inline" onsubmit="return confirm('Supprimer ce compte-rendu ?')">
+              <button type="submit" class="btn-action btn-action-del" title="Supprimer">&#128465;</button>
+            </form>
+          </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" class="table-empty">Aucun compte-rendu sur cette sélection.</td>
+          <td colspan="8" class="table-empty">Aucun compte-rendu sur cette sélection.</td>
         </tr>
         {% endfor %}
       </tbody>

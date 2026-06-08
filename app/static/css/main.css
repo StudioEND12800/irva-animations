@@ -667,3 +667,36 @@ body.dashboard { background: var(--gray-100); }
     flex-direction: column;
   }
 }
+
+/* ── Boutons d'action inline dans les tableaux ───────────────────────────── */
+.td-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  background: none;
+  text-decoration: none;
+  transition: background 0.15s;
+  padding: 0;
+}
+.btn-action-edit {
+  color: var(--green);
+  border-color: var(--green);
+}
+.btn-action-edit:hover { background: var(--green); color: white; }
+.btn-action-del {
+  color: var(--red, #c0392b);
+  border-color: var(--red, #c0392b);
+}
+.btn-action-del:hover { background: var(--red, #c0392b); color: white; }

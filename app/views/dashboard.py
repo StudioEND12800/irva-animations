@@ -365,6 +365,48 @@ def valider(cr_id):
     return redirect(url_for('dashboard.detail', cr_id=cr_id))
 
 
+@dashboard_bp.route('/cr/<int:cr_id>/modifier', methods=['GET', 'POST'])
+@admin_required
+def modifier(cr_id):
+    cr = CompteRendu.query.get_or_404(cr_id)
+    if request.method == 'POST':
+        cr.nom_prenom = request.form.get('nom_prenom', cr.nom_prenom)
+        cr.email = request.form.get('email', cr.email)
+        cr.filiere = request.form.get('filiere', cr.filiere)
+        cr.enseigne = request.form.get('enseigne', cr.enseigne)
+        cr.nom_magasin = request.form.get('nom_magasin', cr.nom_magasin)
+        cr.code_postal = request.form.get('code_postal', cr.code_postal)
+        cr.commune = request.form.get('commune', cr.commune)
+        cr.region = request.form.get('region', cr.region)
+        cr.nom_chef_boucher = request.form.get('nom_chef_boucher', cr.nom_chef_boucher)
+        cr.anciennete_chef_boucher = request.form.get('anciennete_chef_boucher', cr.anciennete_chef_boucher)
+        cr.statut = request.form.get('statut', cr.statut)
+        cr.notes_admin = request.form.get('notes_admin', cr.notes_admin)
+        # Prix VAS
+        def _parse_prix(v):
+            if not v:
+                return None
+            try:
+                f = float(str(v).replace(',', '.'))
+                return f if 0 < f <= 300 else None
+            except ValueError:
+                return None
+        cr.prix_vas_escalope = _parse_prix(request.form.get('prix_vas_escalope'))
+        cr.prix_vas_saute = _parse_prix(request.form.get('prix_vas_saute'))
+        cr.prix_vas_roti = _parse_prix(request.form.get('prix_vas_roti'))
+        cr.prix_vas_tendron = _parse_prix(request.form.get('prix_vas_tendron'))
+        cr.prix_vas_jarret = _parse_prix(request.form.get('prix_vas_jarret'))
+        cr.prix_vas_hache = _parse_prix(request.form.get('prix_vas_hache'))
+        cr.prix_moyen_vas = cr.calc_prix_moyen_vas()
+        cr.prix_moyen_autre = cr.calc_prix_moyen_autre()
+        db.session.commit()
+        flash('Compte-rendu modifié.', 'success')
+        next_url = request.form.get('next') or url_for('dashboard.detail', cr_id=cr_id)
+        return redirect(next_url)
+    # GET : affichage fiche détail
+    return redirect(url_for('dashboard.detail', cr_id=cr_id))
+
+
 @dashboard_bp.route('/cr/<int:cr_id>/supprimer', methods=['POST'])
 @admin_required
 def supprimer(cr_id):
@@ -637,7 +679,7 @@ def _page_decharge(dataset, filters):
         {
             'type': 'table',
             'title': 'Formulaires',
-            'columns': ['Date anim.', 'Eleveur', 'Filiere', 'Enseigne', 'Magasin', 'Region', 'Prix VAS', 'Statut', 'Fiche'],
+            'columns': ['Date anim.', 'Eleveur', 'Filiere', 'Enseigne', 'Magasin', 'Region', 'Prix VAS', 'Statut', 'Fiche', 'Actions'],
             'rows': [
                 [
                     _fmt_date(cr.date_premier_jour),
@@ -649,6 +691,9 @@ def _page_decharge(dataset, filters):
                     _fmt_money(cr.prix_moyen_vas, 'EUR/kg'),
                     _status_label(cr.statut),
                     {'text': 'Ouvrir', 'href': url_for('dashboard.detail', cr_id=cr.id)},
+                    {'type': 'actions', 'cr_id': cr.id,
+                     'delete_url': url_for('dashboard.supprimer', cr_id=cr.id),
+                     'edit_url': url_for('dashboard.detail', cr_id=cr.id)},
                 ]
                 for cr in records
             ],

@@ -76,6 +76,13 @@
               <td>
                 {% if cell is mapping and cell.href %}
                 <a href="{{ cell.href }}" class="table-link">{{ cell.text }}</a>
+                {% elif cell is mapping and cell.type == 'actions' %}
+                <span class="td-actions">
+                  <a href="{{ cell.edit_url }}" class="btn-action btn-action-edit" title="Modifier">&#9998;</a>
+                  <form method="POST" action="{{ cell.delete_url }}" style="display:inline" onsubmit="return confirm('Supprimer ce compte-rendu ?')">
+                    <button type="submit" class="btn-action btn-action-del" title="Supprimer">&#128465;</button>
+                  </form>
+                </span>
                 {% else %}
                 {{ cell }}
                 {% endif %}
