@@ -139,13 +139,9 @@ def excel():
 
     ws.row_dimensions[1].height = 40
 
+    from app.utils import parse_multiselect_str as _jl
     def jl(s):
-        if not s:
-            return ''
-        try:
-            return ', '.join(json.loads(s))
-        except Exception:
-            return str(s)
+        return _jl(s)
 
     for row_num, cr in enumerate(crs, 2):
         row = [
@@ -229,13 +225,9 @@ def excel():
 
 
 def _deserialize(cr):
+    from app.utils import parse_multiselect as _jl
     def jl(s):
-        if not s:
-            return []
-        try:
-            return json.loads(s)
-        except Exception:
-            return [s] if s else []
+        return _jl(s)
     return {k: jl(getattr(cr, k)) for k in [
         'rayons_presents', 'ls_barquettes', 'ls_outils_com', 'trad_outils_com',
         'morceaux_presents', 'emplacement_animation', 'outils_animation',

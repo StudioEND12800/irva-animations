@@ -1167,17 +1167,8 @@ def _page_synthese_donnees(dataset, filters):
 
 
 def _json_list(raw_value):
-    if not raw_value:
-        return []
-    try:
-        parsed = json.loads(raw_value)
-        if isinstance(parsed, list):
-            return [str(item).strip() for item in parsed if str(item).strip()]
-        if parsed in (None, ''):
-            return []
-        return [str(parsed).strip()]
-    except Exception:
-        return [part.strip() for part in str(raw_value).split(',') if part.strip()]
+    from app.utils import parse_multiselect
+    return parse_multiselect(raw_value)
 
 
 def _grouped(records, keyfunc):

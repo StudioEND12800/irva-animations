@@ -69,16 +69,11 @@ def create_app():
     def inject_globals():
         return {'now': datetime.utcnow()}
 
-    # Jinja filter
-    import json as _json
+    # Jinja filter — utilise parse_multiselect pour gérer les artefacts Forminator
+    from app.utils import parse_multiselect as _parse_ms
     @app.template_filter('fromjson')
     def fromjson_filter(s):
-        if not s:
-            return []
-        try:
-            return _json.loads(s)
-        except Exception:
-            return []
+        return _parse_ms(s)
 
     # Blueprints
     from app.views.submit import submit_bp
