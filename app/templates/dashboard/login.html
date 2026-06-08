@@ -5,6 +5,9 @@
   <div class="form-card">
     <h2 class="form-section-title"><span class="section-icon">🔐</span>Accès admin</h2>
     <form method="POST">
+      {% if next_url %}
+      <input type="hidden" name="next" value="{{ next_url }}">
+      {% endif %}
       <div class="field-group">
         <label class="field-label">Mot de passe</label>
         <input class="field-input" type="password" name="password" autofocus required>

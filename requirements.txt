@@ -8,5 +8,6 @@ SQLAlchemy==2.0.30
 Werkzeug==3.0.3
 openpyxl==3.1.2
 xhtml2pdf==0.2.16
+svglib<1.6
 Pillow==10.3.0
 python-dotenv==1.0.1

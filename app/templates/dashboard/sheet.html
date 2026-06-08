@@ -1,0 +1,107 @@
+{% extends 'dashboard/base.html' %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block title %}{{ page.title }} — IRVA{% endblock %}
+{% block content %}
+
+<section class="sheet-header">
+  <a href="{{ url_for('dashboard.index', **request.args) }}" class="sheet-back">← Retour au dashboard</a>
+  <div class="sheet-header-grid">
+    <div>
+      <div class="dashboard-eyebrow">{{ page.category }} · {{ page.sheet_name }}</div>
+      <h1>{{ page.title }}</h1>
+      <p>{{ page.description }}</p>
+    </div>
+    <div class="sheet-summary-box">
+      <div class="sheet-summary-title">Ce que montre cette vue</div>
+      <p>{{ page.summary }}</p>
+      {% if page.audit_rules %}
+      <div class="sheet-summary-title" style="margin-top:14px">Règles de calcul</div>
+      <ul class="sheet-audit-list">
+        {% for rule in page.audit_rules %}
+        <li>{{ rule }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% include 'dashboard/_filters.html' %}
+
+<section class="sheet-sections">
+  {% for section in page.sections %}
+  <article class="sheet-panel {% if section.type == 'table' %}sheet-panel-full{% endif %}">
+    <div class="sheet-panel-head">
+      <div>
+        <div class="sheet-panel-title">{{ section.title }}</div>
+      </div>
+    </div>
+
+    {% if section.type == 'cards' %}
+    <div class="dashboard-cards">
+      {% for card in section.cards %}
+      <div class="dashboard-summary-card">
+        <div class="summary-value">{{ card.value }}</div>
+        <div class="summary-label">{{ card.label }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% elif section.type == 'notes' %}
+    <ul class="notes-list">
+      {% for item in section['items'] %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+    {% elif section.type == 'chart' %}
+    <div class="chart-frame">
+      <canvas class="dashboard-chart" data-config='{{ section.chart|tojson|forceescape }}'></canvas>
+    </div>
+    {% elif section.type == 'table' %}
+    <div class="table-wrap">
+      <table class="cr-table table-compact">
+        <thead>
+          <tr>
+            {% for column in section.columns %}
+            <th>{{ column }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% if section.rows %}
+            {% for row in section.rows %}
+            <tr>
+              {% for cell in row %}
+              <td>
+                {% if cell is mapping and cell.href %}
+                <a href="{{ cell.href }}" class="table-link">{{ cell.text }}</a>
+                {% else %}
+                {{ cell }}
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="{{ section.columns|length }}" class="table-empty">{{ section.empty or 'Aucune donnée sur cette sélection.' }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </article>
+  {% endfor %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.dashboard-chart').forEach((canvas) => {
+  const config = JSON.parse(canvas.dataset.config);
+  new Chart(canvas, config);
+});
+</script>
+{% endblock %}

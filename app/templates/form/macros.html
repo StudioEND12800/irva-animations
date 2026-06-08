@@ -29,9 +29,9 @@
 </div>
 {% endmacro %}
 
-{% macro field_checkbox(name, label, options, values=[], description='') %}
+{% macro field_checkbox(name, label, options, values=[], description='', required=False) %}
 <div class="field-group">
-  <label class="field-label">{{ label }}</label>
+  <label class="field-label {% if required %}required{% endif %}">{{ label }}</label>
   {% if description %}<p class="field-hint">{{ description }}</p>{% endif %}
   <div class="checkbox-group">
     {% for opt_val, opt_label in options %}

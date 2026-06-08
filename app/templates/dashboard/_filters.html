@@ -1,0 +1,54 @@
+<div class="filters-bar">
+  <form method="GET" class="filters-form">
+    <div>
+      <label>Filière</label><br>
+      <select name="filiere" onchange="this.form.submit()">
+        <option value="">Toutes</option>
+        {% for filiere in filieres_dispo %}
+        <option value="{{ filiere }}" {% if filtres.filiere == filiere %}selected{% endif %}>{{ filiere }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label>Année</label><br>
+      <select name="annee" onchange="this.form.submit()">
+        <option value="">Toutes</option>
+        {% for annee in annees_dispo %}
+        <option value="{{ annee }}" {% if filtres.annee|int == annee %}selected{% endif %}>{{ annee }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label>Mois</label><br>
+      <select name="mois" onchange="this.form.submit()">
+        <option value="">Tous</option>
+        {% for mois, libelle in [(1,'Janv'),(2,'Fevr'),(3,'Mars'),(4,'Avr'),(5,'Mai'),(6,'Juin'),(7,'Juil'),(8,'Aout'),(9,'Sept'),(10,'Oct'),(11,'Nov'),(12,'Dec')] %}
+        <option value="{{ mois }}" {% if filtres.mois|int == mois %}selected{% endif %}>{{ libelle }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label>Statut</label><br>
+      <select name="statut" onchange="this.form.submit()">
+        {% for value, label in statuts_dispo %}
+        <option value="{{ value }}" {% if filtres.statut == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label>Recherche</label><br>
+      <input type="text" name="q" value="{{ filtres.q }}" placeholder="Éleveur, magasin, région…">
+    </div>
+
+    <div class="filters-actions">
+      <button type="submit" class="btn btn-primary">Filtrer</button>
+      {% if has_filters %}
+      <a href="{{ request.path }}" class="btn btn-secondary">Réinitialiser</a>
+      {% endif %}
+    </div>
+  </form>
+</div>

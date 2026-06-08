@@ -60,9 +60,6 @@
     <h3>Prix moyens</h3>
     <div class="detail-row"><span class="detail-key">Prix moy. VAS</span><span class="detail-val" style="color:var(--green);font-size:18px;font-weight:700">{{ '%.2f €/kg'|format(cr.prix_moyen_vas) if cr.prix_moyen_vas else '—' }}</span></div>
     <div class="detail-row"><span class="detail-key">Prix moy. autre veau</span><span class="detail-val" style="color:var(--orange);font-size:18px;font-weight:700">{{ '%.2f €/kg'|format(cr.prix_moyen_autre) if cr.prix_moyen_autre else '—' }}</span></div>
-    {% for slug, label in [('escalope','Escalope'),('saute','Sauté'),('roti','Rôti'),('tendron','Tendron'),('jarret','Jarret'),('hache','Haché')] %}
-    {% set vas_val = cr['prix_vas_' ~ slug] if cr['prix_vas_' ~ slug] is defined else getattr(cr, 'prix_vas_' ~ slug, None) %}
-    {% endfor %}
     <div class="detail-row"><span class="detail-key">Escalope VAS</span><span class="detail-val">{{ '%.2f €'|format(cr.prix_vas_escalope) if cr.prix_vas_escalope else '—' }}</span></div>
     <div class="detail-row"><span class="detail-key">Sauté VAS</span><span class="detail-val">{{ '%.2f €'|format(cr.prix_vas_saute) if cr.prix_vas_saute else '—' }}</span></div>
     <div class="detail-row"><span class="detail-key">Rôti VAS</span><span class="detail-val">{{ '%.2f €'|format(cr.prix_vas_roti) if cr.prix_vas_roti else '—' }}</span></div>

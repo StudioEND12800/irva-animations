@@ -31,8 +31,8 @@
             {% for slug, label in [('escalope','Escalope'),('saute','Sauté'),('roti','Rôti'),('tendron','Tendron'),('jarret','Jarret / Ossobuco'),('hache','Steak haché')] %}
             <tr>
               <td>{{ label }}</td>
-              <td><input class="field-input" type="number" name="prix_vas_{{ slug }}" value="{{ getattr(cr, 'prix_vas_' ~ slug) or '' }}" step="0.01" min="0" placeholder="—"></td>
-              <td><input class="field-input" type="number" name="prix_autre_{{ slug }}" value="{{ getattr(cr, 'prix_autre_' ~ slug) or '' }}" step="0.01" min="0" placeholder="—"></td>
+              <td><input class="field-input" type="number" name="prix_vas_{{ slug }}" value="{{ cr|attr('prix_vas_' ~ slug) or '' }}" step="0.01" min="0" placeholder="—"></td>
+              <td><input class="field-input" type="number" name="prix_autre_{{ slug }}" value="{{ cr|attr('prix_autre_' ~ slug) or '' }}" step="0.01" min="0" placeholder="—"></td>
             </tr>
             {% endfor %}
           </tbody>

@@ -1,8 +1,10 @@
 import os
 import json
 import io
+import base64
+import tempfile
 from datetime import datetime
-from flask import Blueprint, send_file, current_app, abort, Response
+from flask import Blueprint, send_file, current_app, abort, request, redirect, url_for, session
 from models import db, CompteRendu, Photo
 
 export_bp = Blueprint('export', __name__)
@@ -10,43 +12,66 @@ export_bp = Blueprint('export', __name__)
 
 def generate_pdf(cr):
     """Génère le PDF du compte-rendu et retourne le chemin du fichier."""
+    temp_paths = []
     try:
         from xhtml2pdf import pisa
         from flask import render_template
 
-        html = render_template('dashboard/pdf_cr.html', cr=cr, data=_deserialize(cr))
+        pdf_assets = _prepare_pdf_assets(cr, temp_paths)
+        html = render_template(
+            'dashboard/pdf_cr.html',
+            cr=cr,
+            data=_deserialize(cr),
+            pdf_assets=pdf_assets,
+        )
         filename = f'CR_{cr.id}_{_slug(cr.nom_magasin or "inconnu")}.pdf'
         fpath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
 
         with open(fpath, 'wb') as f:
-            pisa.CreatePDF(html, dest=f, encoding='utf-8')
+            status = pisa.CreatePDF(html, dest=f, encoding='utf-8')
+        if status.err:
+            current_app.logger.error('PDF generation returned %s error(s) for CR #%s', status.err, cr.id)
+            if os.path.exists(fpath):
+                os.remove(fpath)
+            return None
         return filename
     except Exception as e:
-        current_app.logger.error(f'PDF generation error: {e}')
+        current_app.logger.exception('PDF generation error for CR #%s: %s', cr.id, e)
         return None
+    finally:
+        for path in temp_paths:
+            try:
+                if path and os.path.exists(path):
+                    os.remove(path)
+            except OSError:
+                current_app.logger.warning('Temporary PDF asset could not be removed: %s', path)
 
 
 @export_bp.route('/pdf/<int:cr_id>')
 def pdf(cr_id):
-    from app.views.dashboard import admin_required
-    from flask import session, redirect, url_for
     if not session.get('admin'):
-        abort(403)
+        return redirect(url_for('dashboard.login', next=request.path))
 
     cr = CompteRendu.query.get_or_404(cr_id)
+
+    existing_fpath = None
     if cr.pdf_path:
-        fpath = os.path.join(current_app.config['UPLOAD_FOLDER'], cr.pdf_path)
-        if os.path.exists(fpath):
-            return send_file(fpath, as_attachment=True,
-                             download_name=f'CR_{cr.nom_magasin}.pdf',
-                             mimetype='application/pdf')
-    # Régénérer
+        candidate = os.path.join(current_app.config['UPLOAD_FOLDER'], cr.pdf_path)
+        if os.path.exists(candidate):
+            existing_fpath = candidate
+
+    # Régénérer à chaque téléchargement admin pour refléter l'état courant du CR.
     pdf_name = generate_pdf(cr)
     if pdf_name:
-        cr.pdf_path = pdf_name
-        db.session.commit()
+        if cr.pdf_path != pdf_name:
+            cr.pdf_path = pdf_name
+            db.session.commit()
         fpath = os.path.join(current_app.config['UPLOAD_FOLDER'], pdf_name)
         return send_file(fpath, as_attachment=True,
+                         download_name=f'CR_{cr.nom_magasin}.pdf',
+                         mimetype='application/pdf')
+    if existing_fpath:
+        return send_file(existing_fpath, as_attachment=True,
                          download_name=f'CR_{cr.nom_magasin}.pdf',
                          mimetype='application/pdf')
     abort(500)
@@ -54,9 +79,8 @@ def pdf(cr_id):
 
 @export_bp.route('/excel')
 def excel():
-    from flask import session, request
     if not session.get('admin'):
-        abort(403)
+        return redirect(url_for('dashboard.login', next=request.full_path.rstrip('?')))
 
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment
@@ -223,3 +247,60 @@ def _deserialize(cr):
 def _slug(s):
     import re
     return re.sub(r'[^a-z0-9]+', '_', s.lower())[:40]
+
+
+def _prepare_pdf_assets(cr, temp_paths):
+    assets = {
+        'signature_eleveur_uri': None,
+        'signature_boucher_uri': None,
+    }
+
+    if cr.signature_eleveur_data:
+        temp_file = _write_data_url_image(cr.signature_eleveur_data, f'sig_eleveur_{cr.id}_')
+        if temp_file:
+            temp_paths.append(temp_file)
+            assets['signature_eleveur_uri'] = os.path.abspath(temp_file)
+
+    if cr.signature_boucher_path:
+        signature_path = os.path.join(current_app.config['UPLOAD_FOLDER'], cr.signature_boucher_path)
+        if os.path.exists(signature_path):
+            assets['signature_boucher_uri'] = os.path.abspath(signature_path)
+
+    return assets
+
+
+def _write_data_url_image(data_url, prefix):
+    if not data_url or ',' not in data_url:
+        return None
+
+    header, encoded = data_url.split(',', 1)
+    extension = _image_extension_from_header(header)
+
+    try:
+        binary = base64.b64decode(encoded, validate=False)
+    except Exception:
+        current_app.logger.warning('Invalid signature data URL for PDF generation')
+        return None
+
+    fd, temp_path = tempfile.mkstemp(prefix=prefix, suffix=extension)
+    try:
+        with os.fdopen(fd, 'wb') as f:
+            f.write(binary)
+    except Exception:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise
+    return temp_path
+
+
+def _image_extension_from_header(header):
+    header = header.lower()
+    if 'image/jpeg' in header or 'image/jpg' in header:
+        return '.jpg'
+    if 'image/gif' in header:
+        return '.gif'
+    return '.png'

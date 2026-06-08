@@ -16,6 +16,7 @@
     </div>
     <nav class="dashboard-nav">
       <a href="{{ url_for('dashboard.index') }}">Tableau de bord</a>
+      <a href="{{ url_for('dashboard.sheet_view', sheet_key='decharge-donnees') }}">Décharge</a>
       <a href="{{ url_for('export.excel') }}">Export Excel</a>
       <a href="{{ url_for('dashboard.logout') }}">Déconnexion</a>
     </nav>

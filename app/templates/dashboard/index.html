@@ -2,153 +2,110 @@
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
-{% block title %}Tableau de bord — IRVA{% endblock %}
+{% block title %}Dashboard IRVA{% endblock %}
 {% block content %}
 
-{# ── KPIs ── #}
-<div class="kpi-grid">
-  <div class="kpi-card">
-    <div class="kpi-value">{{ total }}</div>
-    <div class="kpi-label">Comptes-rendus soumis</div>
+<section class="dashboard-hero">
+  <div>
+    <div class="dashboard-eyebrow">Dashboard classeur dynamique</div>
+    <h1>Le tableau Excel est maintenant branché en direct sur les formulaires.</h1>
+    <p>
+      Chaque widget reprend une feuille du classeur source. Un clic ouvre l’équivalent vivant de cette feuille,
+      recalculé automatiquement à chaque nouveau compte-rendu.
+    </p>
   </div>
-  {% for fil, nb in filieres %}
-  <div class="kpi-card" style="border-color:var(--green-light)">
-    <div class="kpi-value" style="font-size:24px">{{ nb }}</div>
-    <div class="kpi-label">{{ fil or '—' }}</div>
-  </div>
+</section>
+
+{% include 'dashboard/_filters.html' %}
+
+<section class="dashboard-cards">
+  {% for card in cards %}
+  <article class="dashboard-summary-card">
+    <div class="summary-value">{{ card.value }}</div>
+    <div class="summary-label">{{ card.label }}</div>
+  </article>
   {% endfor %}
-  {% if prix_moyen %}
-  <div class="kpi-card" style="border-color:var(--yellow)">
-    <div class="kpi-value">{{ '%.2f'|format(prix_moyen) }} €</div>
-    <div class="kpi-label">Prix moyen VAS/kg</div>
-  </div>
-  {% endif %}
-</div>
+</section>
 
-{# ── Graphe prix ── #}
-<div style="background:white;border-radius:10px;padding:20px;box-shadow:var(--shadow);margin-bottom:24px">
-  <h3 style="font-size:14px;color:var(--green);margin-bottom:16px">Évolution des prix moyens VAS (€/kg)</h3>
-  <canvas id="chart-prix" height="80"></canvas>
-</div>
-
-{# ── Top enseignes ── #}
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-  <div style="background:white;border-radius:10px;padding:20px;box-shadow:var(--shadow)">
-    <h3 style="font-size:13px;color:var(--green);margin-bottom:12px;text-transform:uppercase">Top enseignes</h3>
-    {% for enseigne, nb in enseignes %}
-    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--gray-100);font-size:13px">
-      <span>{{ enseigne or 'Autre' }}</span>
-      <strong style="color:var(--green)">{{ nb }}</strong>
-    </div>
-    {% endfor %}
-  </div>
-  <div style="background:white;border-radius:10px;padding:20px;box-shadow:var(--shadow)">
-    <h3 style="font-size:13px;color:var(--green);margin-bottom:12px;text-transform:uppercase">Export & Actions</h3>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <a href="{{ url_for('export.excel') }}{% if filtres.filiere %}?filiere={{ filtres.filiere }}{% endif %}{% if filtres.annee %}&annee={{ filtres.annee }}{% endif %}"
-         class="btn btn-secondary" style="text-align:center">
-        📊 Exporter en Excel
-      </a>
-      <a href="{{ url_for('submit.index') }}" target="_blank" class="btn btn-secondary" style="text-align:center">
-        🔗 Voir le formulaire public
-      </a>
+<section class="sheet-panel sheet-panel-full">
+  <div class="sheet-panel-head">
+    <div>
+      <div class="sheet-panel-title">Activité de la sélection</div>
+      <div class="sheet-panel-subtitle">Vision rapide avant d’entrer dans les feuilles détaillées.</div>
     </div>
   </div>
-</div>
+  <div class="chart-frame">
+    <canvas class="dashboard-chart" data-config='{{ overview_chart.chart|tojson|forceescape }}'></canvas>
+  </div>
+</section>
 
-{# ── Filtres ── #}
-<div class="filters-bar">
-  <form method="GET" style="display:contents">
-    <div>
-      <label>Filière</label><br>
-      <select name="filiere" onchange="this.form.submit()">
-        <option value="">Toutes</option>
-        {% for f in ['SA4R','Natera','Sudries','Cadars','Autre'] %}
-        <option value="{{ f }}" {% if filtres.filiere == f %}selected{% endif %}>{{ f }}</option>
-        {% endfor %}
-      </select>
+<section class="widget-grid">
+  {% for widget in widgets %}
+  <a href="{{ widget.href }}" class="widget-card">
+    <div class="widget-meta">
+      <span class="widget-category">{{ widget.category }}</span>
+      <span class="widget-sheet">{{ widget.sheet_name }}</span>
     </div>
-    <div>
-      <label>Année</label><br>
-      <select name="annee" onchange="this.form.submit()">
-        <option value="">Toutes</option>
-        {% for a in annees_dispo %}
-        <option value="{{ a }}" {% if filtres.annee|int == a %}selected{% endif %}>{{ a }}</option>
-        {% endfor %}
-      </select>
+    <div class="widget-title">{{ widget.title }}</div>
+    <p class="widget-description">{{ widget.description }}</p>
+    <div class="widget-footer">
+      <div>
+        <div class="widget-value">{{ widget.value }}</div>
+        <div class="widget-value-label">{{ widget.value_label }}</div>
+      </div>
+      <span class="widget-link">Ouvrir</span>
     </div>
-    <div>
-      <label>Mois</label><br>
-      <select name="mois" onchange="this.form.submit()">
-        <option value="">Tous</option>
-        {% for m, ml in [(1,'Janv'),(2,'Févr'),(3,'Mars'),(4,'Avr'),(5,'Mai'),(6,'Juin'),(7,'Juil'),(8,'Août'),(9,'Sept'),(10,'Oct'),(11,'Nov'),(12,'Déc')] %}
-        <option value="{{ m }}" {% if filtres.mois|int == m %}selected{% endif %}>{{ ml }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div>
-      <label>Statut</label><br>
-      <select name="statut" onchange="this.form.submit()">
-        <option value="">Tous</option>
-        <option value="soumis" {% if filtres.statut == 'soumis' %}selected{% endif %}>Soumis</option>
-        <option value="valide" {% if filtres.statut == 'valide' %}selected{% endif %}>Validé</option>
-        <option value="brouillon" {% if filtres.statut == 'brouillon' %}selected{% endif %}>Brouillon</option>
-      </select>
-    </div>
-    <div>
-      <label>Recherche</label><br>
-      <input type="text" name="q" value="{{ filtres.q }}" placeholder="Éleveur, magasin…" style="width:180px">
-      <button type="submit" class="btn btn-primary" style="padding:6px 12px;font-size:12px">🔍</button>
-    </div>
-  </form>
-</div>
+  </a>
+  {% endfor %}
+</section>
 
-{# ── Table ── #}
-<table class="cr-table">
-  <thead>
-    <tr>
-      <th>Date anim.</th><th>Éleveur·se</th><th>Filière</th>
-      <th>Magasin</th><th>Commune</th><th>Prix VAS moy.</th>
-      <th>Statut</th><th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for cr in crs %}
-    <tr>
-      <td>{{ cr.date_premier_jour.strftime('%d/%m/%Y') if cr.date_premier_jour else '—' }}</td>
-      <td>{{ cr.nom_prenom or '—' }}</td>
-      <td>{{ cr.filiere or '—' }}</td>
-      <td>{{ cr.nom_magasin or '—' }}</td>
-      <td>{{ cr.commune or '—' }}</td>
-      <td>{{ '%.2f €'|format(cr.prix_moyen_vas) if cr.prix_moyen_vas else '—' }}</td>
-      <td><span class="badge badge-{{ cr.statut }}">{{ cr.statut }}</span></td>
-      <td>
-        <a href="{{ url_for('dashboard.detail', cr_id=cr.id) }}" class="btn btn-secondary" style="padding:4px 10px;font-size:11px">Voir</a>
-        <a href="{{ url_for('export.pdf', cr_id=cr.id) }}" class="btn btn-secondary" style="padding:4px 10px;font-size:11px">PDF</a>
-      </td>
-    </tr>
-    {% else %}
-    <tr><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px">Aucun compte-rendu</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
+<section class="sheet-panel sheet-panel-full">
+  <div class="sheet-panel-head">
+    <div>
+      <div class="sheet-panel-title">Derniers comptes-rendus</div>
+      <div class="sheet-panel-subtitle">Aperçu rapide avant ouverture de la feuille source.</div>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="cr-table">
+      <thead>
+        <tr>
+          <th>Date anim.</th>
+          <th>Éleveur</th>
+          <th>Filière</th>
+          <th>Magasin</th>
+          <th>Région</th>
+          <th>Statut</th>
+          <th>Fiche</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cr in recent_crs %}
+        <tr>
+          <td>{{ cr.date_premier_jour.strftime('%d/%m/%Y') if cr.date_premier_jour else '—' }}</td>
+          <td>{{ cr.nom_prenom or '—' }}</td>
+          <td>{{ cr.filiere or '—' }}</td>
+          <td>{{ cr.nom_magasin or '—' }}</td>
+          <td>{{ cr.region or '—' }}</td>
+          <td><span class="badge badge-{{ cr.statut }}">{{ cr.statut }}</span></td>
+          <td><a href="{{ url_for('dashboard.detail', cr_id=cr.id) }}" class="table-link">Ouvrir</a></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="table-empty">Aucun compte-rendu sur cette sélection.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
 
+{% block extra_js %}
 <script>
-fetch('/admin/stats').then(r => r.json()).then(data => {
-  const labels = data.prix_par_mois.map(d => `${String(d.mois).padStart(2,'0')}/${d.annee}`);
-  const vas = data.prix_par_mois.map(d => d.prix_vas);
-  const autre = data.prix_par_mois.map(d => d.prix_autre);
-  new Chart(document.getElementById('chart-prix'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'VAS (€/kg)', data: vas, borderColor: '#4F7942', backgroundColor: 'rgba(79,121,66,.1)', tension: 0.3, fill: true },
-        { label: 'Autre veau (€/kg)', data: autre, borderColor: '#e8732a', backgroundColor: 'rgba(232,115,42,.1)', tension: 0.3, fill: true },
-      ]
-    },
-    options: { plugins: { legend: { position: 'top' } }, scales: { y: { beginAtZero: false } } }
-  });
+document.querySelectorAll('.dashboard-chart').forEach((canvas) => {
+  const config = JSON.parse(canvas.dataset.config);
+  new Chart(canvas, config);
 });
 </script>
 {% endblock %}
