@@ -133,17 +133,19 @@ class CompteRendu(db.Model):
         return 1
 
     def calc_prix_moyen_vas(self):
+        # Exclut 0, None et valeurs aberrantes (> 300 EUR/kg = typo certain)
         vals = [v for v in [
             self.prix_vas_escalope, self.prix_vas_saute, self.prix_vas_roti,
             self.prix_vas_tendron, self.prix_vas_jarret, self.prix_vas_hache
-        ] if v]
+        ] if v and 0 < v <= 300]
         return round(sum(vals) / len(vals), 2) if vals else None
 
     def calc_prix_moyen_autre(self):
+        # Exclut 0, None et valeurs aberrantes (> 300 EUR/kg = typo certain)
         vals = [v for v in [
             self.prix_autre_escalope, self.prix_autre_saute, self.prix_autre_roti,
             self.prix_autre_tendron, self.prix_autre_jarret, self.prix_autre_hache
-        ] if v]
+        ] if v and 0 < v <= 300]
         return round(sum(vals) / len(vals), 2) if vals else None
 
 

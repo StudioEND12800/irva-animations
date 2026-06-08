@@ -492,7 +492,7 @@ def _overview_cards(active_records, draft_records):
         {'value': _fmt_int(len(active_records)), 'label': 'CR analyses'},
         {'value': _fmt_int(len(draft_records)), 'label': 'Brouillons en cours'},
         {'value': _fmt_int(unique_stores), 'label': 'Magasins uniques'},
-        {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in active_records]), 'EUR/kg'), 'label': 'Prix moyen VAS'},
+        {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in active_records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'Prix moyen VAS'},
         {'value': _fmt_int(regions), 'label': 'Regions couvertes'},
     ]
 
@@ -512,7 +512,7 @@ def _build_widgets(dataset, filters):
         'decharge-donnees': (_fmt_int(len(all_records)), 'lignes filtrees'),
         'notice-decharge': ('4', 'controles de base'),
         'synthese-global': (_fmt_int(len(active_records)), 'CR complets'),
-        'evolution-prix-2024': (_fmt_money(_avg([cr.prix_moyen_vas for cr in active_records]), 'EUR/kg'), 'moyenne VAS'),
+        'evolution-prix-2024': (_fmt_money(_avg([cr.prix_moyen_vas for cr in active_records], max_val=_PRIX_MAX), 'EUR/kg'), 'moyenne VAS'),
         'synthese-par-filiere': (_fmt_int(active_filieres), 'filieres actives'),
         'prix-par-region': (_fmt_int(unique_regions), 'regions actives'),
         'detail-prix-filiere': (_fmt_int(len([cr for cr in active_records if cr.prix_moyen_autre])), 'comparaisons VAS/autre'),
@@ -675,8 +675,8 @@ def _page_synthese_global(dataset, filters):
             'cards': [
                 {'value': _fmt_int(len(records)), 'label': 'CR analyses'},
                 {'value': _fmt_int(len({cr.nom_magasin for cr in records if cr.nom_magasin})), 'label': 'magasins uniques'},
-                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in records]), 'EUR/kg'), 'label': 'prix moyen VAS'},
-                {'value': _fmt_money(_avg([cr.prix_moyen_autre for cr in records]), 'EUR/kg'), 'label': 'prix moyen autre veau'},
+                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'prix moyen VAS'},
+                {'value': _fmt_money(_avg([cr.prix_moyen_autre for cr in records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'prix moyen autre veau'},
             ],
         },
         {
@@ -719,8 +719,8 @@ def _page_evolution_prix(dataset, filters):
             'type': 'cards',
             'title': 'Repere prix',
             'cards': [
-                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in records]), 'EUR/kg'), 'label': 'prix moyen VAS'},
-                {'value': _fmt_money(_avg([cr.prix_moyen_autre for cr in records]), 'EUR/kg'), 'label': 'prix moyen autre veau'},
+                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'prix moyen VAS'},
+                {'value': _fmt_money(_avg([cr.prix_moyen_autre for cr in records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'prix moyen autre veau'},
                 {'value': _fmt_int(len([cr for cr in records if cr.prix_moyen_autre])), 'label': 'CR comparables'},
             ],
         },
@@ -753,7 +753,7 @@ def _page_synthese_filiere(dataset, filters):
                 {'value': focus or '—', 'label': 'filiere'},
                 {'value': _fmt_int(len(focus_records)), 'label': 'CR de la filiere'},
                 {'value': _fmt_percent(_safe_div(len(focus_records), len(records))), 'label': 'part du global'},
-                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in focus_records]), 'EUR/kg'), 'label': 'prix moyen VAS'},
+                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in focus_records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'prix moyen VAS'},
             ],
         },
         {
@@ -795,7 +795,7 @@ def _page_prix_region(dataset, filters):
             'cards': [
                 {'value': _fmt_int(len({cr.region for cr in records if cr.region})), 'label': 'regions'},
                 {'value': _fmt_int(len({cr.code_departement for cr in records if cr.code_departement})), 'label': 'departements'},
-                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in records]), 'EUR/kg'), 'label': 'prix moyen VAS'},
+                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'prix moyen VAS'},
             ],
         },
         {
@@ -821,8 +821,8 @@ def _page_detail_prix_filiere(dataset, filters):
     for suffix, label in PRICE_COMPARISON_FIELDS:
         vas_values = [getattr(cr, f'prix_vas_{suffix}') for cr in focus_records if getattr(cr, f'prix_vas_{suffix}') not in (None, 0)]
         autre_values = [getattr(cr, f'prix_autre_{suffix}') for cr in focus_records if getattr(cr, f'prix_autre_{suffix}') not in (None, 0)]
-        avg_vas = _avg(vas_values)
-        avg_autre = _avg(autre_values)
+        avg_vas = _avg(vas_values, max_val=_PRIX_MAX)
+        avg_autre = _avg(autre_values, max_val=_PRIX_MAX)
         chart_labels.append(label)
         chart_vas.append(avg_vas or 0)
         chart_autre.append(avg_autre or 0)
@@ -835,8 +835,8 @@ def _page_detail_prix_filiere(dataset, filters):
             'cards': [
                 {'value': focus or '—', 'label': 'filiere'},
                 {'value': _fmt_int(len([cr for cr in focus_records if cr.prix_moyen_autre])), 'label': 'CR avec autre veau'},
-                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in focus_records]), 'EUR/kg'), 'label': 'prix moyen VAS'},
-                {'value': _fmt_money(_avg([cr.prix_moyen_autre for cr in focus_records]), 'EUR/kg'), 'label': 'prix moyen autre'},
+                {'value': _fmt_money(_avg([cr.prix_moyen_vas for cr in focus_records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'prix moyen VAS'},
+                {'value': _fmt_money(_avg([cr.prix_moyen_autre for cr in focus_records], max_val=_PRIX_MAX), 'EUR/kg'), 'label': 'prix moyen autre'},
             ],
         },
         {
@@ -867,8 +867,8 @@ def _page_detail_prix_filiere(dataset, filters):
             'rows': [
                 [
                     label,
-                    _fmt_money(_avg([cr.prix_moyen_vas for cr in group]), 'EUR/kg'),
-                    _fmt_money(_avg([cr.prix_moyen_autre for cr in group]), 'EUR/kg'),
+                    _fmt_money(_avg([cr.prix_moyen_vas for cr in group], max_val=_PRIX_MAX), 'EUR/kg'),
+                    _fmt_money(_avg([cr.prix_moyen_autre for cr in group], max_val=_PRIX_MAX), 'EUR/kg'),
                     _fmt_int(len([cr for cr in group if cr.prix_moyen_autre])),
                 ]
                 for label, group in _grouped(records, lambda cr: cr.filiere or 'Non renseignee')
@@ -1187,8 +1187,14 @@ def _month_label(month):
     return MONTH_LABELS.get(month, '—')
 
 
-def _avg(values):
-    nums = [value for value in values if value not in (None, '', 0)]
+# Seuil au-delà duquel un prix €/kg est considéré aberrant (typo décimale)
+_PRIX_MAX = 300.0
+
+
+def _avg(values, max_val=None):
+    nums = [v for v in values if v not in (None, '', 0)]
+    if max_val is not None:
+        nums = [v for v in nums if v <= max_val]
     return round(sum(nums) / len(nums), 2) if nums else None
 
 
@@ -1393,7 +1399,7 @@ def _price_rows_by_group(records, keyfunc, include_count=False):
             avg_price = _avg([getattr(cr, attr) for cr in group])
             averages.append(avg_price)
             row.append(_fmt_money(avg_price, 'EUR/kg'))
-        row.append(_fmt_money(_avg([cr.prix_moyen_vas for cr in group]), 'EUR/kg'))
+        row.append(_fmt_money(_avg([cr.prix_moyen_vas for cr in group], max_val=_PRIX_MAX), 'EUR/kg'))
         if include_count:
             row.append(_fmt_int(len(group)))
         rows.append(row)
