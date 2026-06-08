@@ -87,9 +87,23 @@ def clean_price(series: pd.Series) -> pd.Series:
 
 
 def excel_serial_to_date(serial) -> Optional[pd.Timestamp]:
-    """Convertit un numéro de série Excel en Timestamp pandas."""
+    """
+    Convertit une valeur de cellule date Excel en Timestamp.
+    Gère : numéro de série (float), chaîne date ISO, ou Timestamp déjà parsé.
+    """
+    if pd.isna(serial) or str(serial).strip() in ("", "nan"):
+        return None
+    # Déjà un Timestamp ou datetime
+    if isinstance(serial, pd.Timestamp):
+        return serial
+    # Chaîne de date ISO ou datetime string (pandas charge parfois les dates déjà parsées)
+    s = str(serial).strip()
+    ts = pd.to_datetime(s, errors="coerce", dayfirst=False)
+    if ts is not pd.NaT and not pd.isna(ts):
+        return ts
+    # Numéro de série Excel (float)
     try:
-        n = float(str(serial).replace(",", "."))
+        n = float(s.replace(",", "."))
         return pd.Timestamp("1899-12-30") + pd.Timedelta(days=int(n))
     except Exception:
         return None
@@ -520,7 +534,17 @@ def build_tableau_calcul(raw: pd.DataFrame, refs: dict[str, pd.DataFrame]) -> pd
     out["_fb"] = raw.get("Cochez la case correspondant à votre situation :", "")                              # TC!FB
     out["_fc"] = raw.get("Téléchargez ici les photos de votre animation", "")                                 # TC!FC
     out["_fd"] = raw.get("Téléchargez ICI la photo du feuillet avec la signature et le caché du chef boucher", "")  # TC!FD
-    out["_fe"] = raw.get("Signature Eleveur,se", "")                                                          # TC!FE
+    # TC!FE : Forminator exporte "Signature Eleveur.se" (point) ou "Signature Eleveur,se" (virgule)
+    # selon la version. On prend la première colonne non-vide parmi les deux noms.
+    _sig_col = _find_col(raw, ["Signature Eleveur.se", "Signature Eleveur,se"])
+    _sig_series = raw[_sig_col] if _sig_col else pd.Series("", index=raw.index)
+    # Une deuxième colonne signature (Unnamed: 85) peut contenir des signatures du 2ème formulaire
+    _sig2_col = _find_col(raw, ["Unnamed: 85"])
+    if _sig2_col:
+        _sig2 = raw[_sig2_col]
+        # Fusionner : garder _fe principale, compléter avec la 2ème si vide
+        _sig_series = _sig_series.combine_first(_sig2)
+    out["_fe"] = _sig_series                                                                                  # TC!FE
 
     # ── TC!FF — Statut CR (formule clé de toutes les synthèses) ──────────────
     out["statut_cr"] = compute_cr_status(out)  # TC!FF
