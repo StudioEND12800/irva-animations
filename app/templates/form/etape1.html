@@ -49,10 +49,11 @@
         ('Autre',   'Autre'),
     ], value=cr.filiere or '', required=True) }}
 
+    <p class="field-hint" style="margin-top:8px">
+      Le brouillon et le lien de reprise seront disponibles à partir de l'étape suivante, une fois ces informations complétées.
+    </p>
+
     <div class="form-actions">
-      <button type="submit" name="action" value="sauvegarder" class="btn btn-secondary">
-        💾 Sauvegarder et continuer plus tard
-      </button>
       <button type="submit" name="action" value="suivant" class="btn btn-primary">
         Suivant →
       </button>

@@ -12,6 +12,7 @@
     <p style="color:var(--gray-600);font-size:13px">{{ cr.nom_prenom }} — {{ cr.filiere }} — {{ cr.date_premier_jour.strftime('%d/%m/%Y') if cr.date_premier_jour else '—' }}</p>
   </div>
   <div style="display:flex;gap:8px">
+    <a href="{{ url_for('dashboard.modifier', cr_id=cr.id, next=request.full_path) }}" class="btn btn-secondary">✏️ Modifier</a>
     <a href="{{ url_for('export.pdf', cr_id=cr.id) }}" class="btn btn-secondary">📄 Télécharger PDF</a>
     {% if cr.statut != 'valide' %}
     <form method="POST" action="{{ url_for('dashboard.valider', cr_id=cr.id) }}" style="display:inline">
@@ -24,6 +25,18 @@
     </form>
   </div>
 </div>
+
+{% if resume_link %}
+<div class="resume-box" style="margin-bottom:20px">
+  <div class="resume-box-title">Reprise de brouillon</div>
+  <p class="resume-box-text">Ce formulaire est encore en brouillon. Voici le lien et le code à transmettre si l’éleveur doit reprendre sa saisie.</p>
+  <div class="resume-box-row">
+    <input class="resume-box-input" type="text" readonly value="{{ resume_link.url }}">
+    <button type="button" class="btn btn-secondary js-copy-btn" data-copy="{{ resume_link.url }}">Copier le lien</button>
+  </div>
+  <p class="resume-box-code">Code de reprise : <code>{{ resume_link.token }}</code></p>
+</div>
+{% endif %}
 
 <div class="detail-grid">
   <div class="detail-section">

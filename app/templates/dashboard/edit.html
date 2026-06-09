@@ -1,0 +1,370 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Modifier CR #{{ cr.id }}{% endblock %}
+{% block content %}
+<section class="sheet-header">
+  <a href="{{ next_url }}" class="sheet-back">← Retour à la fiche</a>
+  <div class="sheet-header-grid">
+    <div>
+      <div class="dashboard-eyebrow">Admin · Correction manuelle</div>
+      <h1>Modifier le compte-rendu #{{ cr.id }}</h1>
+      <p>Corrigez les informations saisies par l’utilisateur sans toucher aux médias déjà joints.</p>
+    </div>
+    <div class="sheet-summary-box">
+      <div class="sheet-summary-title">Médias et signatures</div>
+      <p>Les photos, signatures et le PDF restent consultables depuis la fiche détail.</p>
+      <a href="{{ url_for('dashboard.detail', cr_id=cr.id) }}" class="table-link">Ouvrir la fiche complète</a>
+    </div>
+  </div>
+</section>
+
+{% if resume_link %}
+<div class="resume-box">
+  <div class="resume-box-title">Brouillon en cours</div>
+  <p class="resume-box-text">Ce compte-rendu n’est pas encore soumis. Vous pouvez transmettre ce lien ou ce code à l’éleveur pour qu’il reprenne sa saisie.</p>
+  <div class="resume-box-row">
+    <input class="resume-box-input" type="text" readonly value="{{ resume_link.url }}">
+    <button type="button" class="btn btn-secondary js-copy-btn" data-copy="{{ resume_link.url }}">Copier le lien</button>
+  </div>
+  <p class="resume-box-code">Code de reprise : <code>{{ resume_link.token }}</code></p>
+</div>
+{% endif %}
+
+<div class="form-card">
+  <form method="POST" action="{{ url_for('dashboard.modifier', cr_id=cr.id, next=next_url) }}" novalidate>
+    <input type="hidden" name="next" value="{{ next_url }}">
+
+    <h2 class="form-section-title"><span class="section-icon">🛠</span>Pilotage admin</h2>
+    <div class="field-row col-2">
+      <div class="field-group">
+        <label class="field-label" for="statut">Statut</label>
+        <div class="select-wrapper">
+          <select id="statut" name="statut" class="field-input field-select">
+            {% for option in statut_options %}
+            <option value="{{ option }}" {% if cr.statut == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="ref_animation">Référence animation</label>
+        <input id="ref_animation" name="ref_animation" class="field-input" value="{{ cr.ref_animation or '' }}">
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="notes_admin">Notes admin</label>
+      <textarea id="notes_admin" name="notes_admin" class="field-input field-textarea">{{ cr.notes_admin or '' }}</textarea>
+    </div>
+
+    <div class="sub-section">
+      <h3 class="sub-section-title">Éleveur</h3>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="date_premier_jour">Date du premier jour</label>
+          <input id="date_premier_jour" name="date_premier_jour" type="date" class="field-input" value="{{ cr.date_premier_jour.isoformat() if cr.date_premier_jour else '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="date_dernier_jour">Date du dernier jour</label>
+          <input id="date_dernier_jour" name="date_dernier_jour" type="date" class="field-input" value="{{ cr.date_dernier_jour.isoformat() if cr.date_dernier_jour else '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="nom_prenom">Nom / prénom</label>
+          <input id="nom_prenom" name="nom_prenom" class="field-input" value="{{ cr.nom_prenom or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="num_cheptel">N° cheptel</label>
+          <input id="num_cheptel" name="num_cheptel" class="field-input" value="{{ cr.num_cheptel or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="email">E-mail</label>
+          <input id="email" name="email" type="email" class="field-input" value="{{ cr.email or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="filiere">Filière</label>
+          <div class="select-wrapper">
+            <select id="filiere" name="filiere" class="field-input field-select">
+              <option value=""></option>
+              {% for option in filiere_options %}
+              <option value="{{ option }}" {% if cr.filiere == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="animation_solo">Animation réalisée</label>
+          <div class="select-wrapper">
+            <select id="animation_solo" name="animation_solo" class="field-input field-select">
+              <option value=""></option>
+              {% for option in solo_options %}
+              <option value="{{ option }}" {% if cr.animation_solo == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="nom_coeleveuse">Co-éleveur·se</label>
+          <input id="nom_coeleveuse" name="nom_coeleveuse" class="field-input" value="{{ cr.nom_coeleveuse or '' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3 class="sub-section-title">Magasin</h3>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="enseigne">Enseigne</label>
+          <div class="select-wrapper">
+            <select id="enseigne" name="enseigne" class="field-input field-select">
+              <option value=""></option>
+              {% for option in enseigne_options %}
+              <option value="{{ option }}" {% if cr.enseigne == option %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="nom_magasin">Nom du magasin</label>
+          <input id="nom_magasin" name="nom_magasin" class="field-input" value="{{ cr.nom_magasin or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="code_postal">Code postal</label>
+          <input id="code_postal" name="code_postal" class="field-input" value="{{ cr.code_postal or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="code_departement">Code département</label>
+          <input id="code_departement" name="code_departement" class="field-input" value="{{ cr.code_departement or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="commune">Commune</label>
+          <input id="commune" name="commune" class="field-input" value="{{ cr.commune or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="region">Région</label>
+          <input id="region" name="region" class="field-input" value="{{ cr.region or '' }}">
+          <div class="field-hint">Laissez vide pour redéduire la région depuis le code postal.</div>
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="nom_parrain">Parrain magasin</label>
+          <input id="nom_parrain" name="nom_parrain" class="field-input" value="{{ cr.nom_parrain or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="nom_chef_boucher">Chef boucher</label>
+          <input id="nom_chef_boucher" name="nom_chef_boucher" class="field-input" value="{{ cr.nom_chef_boucher or '' }}">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="anciennete_chef_boucher">Ancienneté chef boucher</label>
+        <input id="anciennete_chef_boucher" name="anciennete_chef_boucher" class="field-input" value="{{ cr.anciennete_chef_boucher or '' }}">
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3 class="sub-section-title">Terrain et ressenti</h3>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="frequentation">Fréquentation</label>
+          <input id="frequentation" name="frequentation" class="field-input" value="{{ cr.frequentation or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="approvisionnement">Approvisionnement</label>
+          <input id="approvisionnement" name="approvisionnement" class="field-input" value="{{ cr.approvisionnement or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="ruptures">Ruptures</label>
+          <input id="ruptures" name="ruptures" class="field-input" value="{{ cr.ruptures or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="ventes_supplementaires">Ventes supplémentaires</label>
+          <input id="ventes_supplementaires" name="ventes_supplementaires" class="field-input" value="{{ cr.ventes_supplementaires or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="incident">Incident</label>
+          <input id="incident" name="incident" class="field-input" value="{{ cr.incident or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="incident_majeur">Incident majeur</label>
+          <input id="incident_majeur" name="incident_majeur" class="field-input" value="{{ cr.incident_majeur or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="clients_connaissaient_vas">Clients connaissaient VAS</label>
+          <input id="clients_connaissaient_vas" name="clients_connaissaient_vas" class="field-input" value="{{ cr.clients_connaissaient_vas or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="interesse_formation">Intéressé·e formation</label>
+          <input id="interesse_formation" name="interesse_formation" class="field-input" value="{{ cr.interesse_formation or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="ressenti_mise_en_place">Ressenti mise en place</label>
+          <input id="ressenti_mise_en_place" name="ressenti_mise_en_place" class="field-input" value="{{ cr.ressenti_mise_en_place or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="ressenti_accroche">Ressenti accroche</label>
+          <input id="ressenti_accroche" name="ressenti_accroche" class="field-input" value="{{ cr.ressenti_accroche or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="ressenti_argumentaire">Ressenti argumentaire</label>
+          <input id="ressenti_argumentaire" name="ressenti_argumentaire" class="field-input" value="{{ cr.ressenti_argumentaire or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="kit_irva">Kit IRVA</label>
+          <input id="kit_irva" name="kit_irva" class="field-input" value="{{ cr.kit_irva or '' }}">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="kit_interbev">Kit Interbev</label>
+        <input id="kit_interbev" name="kit_interbev" class="field-input" value="{{ cr.kit_interbev or '' }}">
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3 class="sub-section-title">Prix et linéaires</h3>
+      <table class="prix-table">
+        <thead>
+          <tr>
+            <th>Morceau</th>
+            <th>VAS</th>
+            <th>Autre veau</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for suffix, label in price_fields %}
+          <tr>
+            <td>{{ label }}</td>
+            <td><input name="prix_vas_{{ suffix }}" class="field-input" value="{{ cr|attr('prix_vas_' ~ suffix) if cr|attr('prix_vas_' ~ suffix) is not none else '' }}"></td>
+            <td><input name="prix_autre_{{ suffix }}" class="field-input" value="{{ cr|attr('prix_autre_' ~ suffix) if cr|attr('prix_autre_' ~ suffix) is not none else '' }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="field-row col-2" style="margin-top:16px">
+        <div class="field-group">
+          <label class="field-label" for="ls_lineaire">Linéaire LS</label>
+          <input id="ls_lineaire" name="ls_lineaire" class="field-input" value="{{ cr.ls_lineaire if cr.ls_lineaire is not none else '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="trad_lineaire">Linéaire trad</label>
+          <input id="trad_lineaire" name="trad_lineaire" class="field-input" value="{{ cr.trad_lineaire if cr.trad_lineaire is not none else '' }}">
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="ls_autre_veau_lineaire">Linéaire autre veau LS</label>
+        <input id="ls_autre_veau_lineaire" name="ls_autre_veau_lineaire" class="field-input" value="{{ cr.ls_autre_veau_lineaire if cr.ls_autre_veau_lineaire is not none else '' }}">
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="precision_prix">Précision prix</label>
+          <input id="precision_prix" name="precision_prix" class="field-input" value="{{ cr.precision_prix or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="ls_visibilite">Visibilité LS</label>
+          <input id="ls_visibilite" name="ls_visibilite" class="field-input" value="{{ cr.ls_visibilite or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="trad_visibilite">Visibilité trad</label>
+          <input id="trad_visibilite" name="trad_visibilite" class="field-input" value="{{ cr.trad_visibilite or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="ls_barquettes_sur_place">Barquettes LS sur place</label>
+          <input id="ls_barquettes_sur_place" name="ls_barquettes_sur_place" class="field-input" value="{{ cr.ls_barquettes_sur_place or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="ls_qualite_decoupe">Qualité découpe LS</label>
+          <input id="ls_qualite_decoupe" name="ls_qualite_decoupe" class="field-input" value="{{ cr.ls_qualite_decoupe or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="trad_qualite_decoupe">Qualité découpe trad</label>
+          <input id="trad_qualite_decoupe" name="trad_qualite_decoupe" class="field-input" value="{{ cr.trad_qualite_decoupe or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="ls_autre_veau">Autre veau LS</label>
+          <input id="ls_autre_veau" name="ls_autre_veau" class="field-input" value="{{ cr.ls_autre_veau or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="trad_autre_veau">Autre veau trad</label>
+          <input id="trad_autre_veau" name="trad_autre_veau" class="field-input" value="{{ cr.trad_autre_veau or '' }}">
+        </div>
+      </div>
+      <div class="field-row col-2">
+        <div class="field-group">
+          <label class="field-label" for="ls_autre_veau_marque">Marque autre veau LS</label>
+          <input id="ls_autre_veau_marque" name="ls_autre_veau_marque" class="field-input" value="{{ cr.ls_autre_veau_marque or '' }}">
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="trad_autre_veau_marque">Marque autre veau trad</label>
+          <input id="trad_autre_veau_marque" name="trad_autre_veau_marque" class="field-input" value="{{ cr.trad_autre_veau_marque or '' }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3 class="sub-section-title">Commentaires et précisions</h3>
+      {% for field, label in [
+        ('commentaire_prix', 'Commentaire prix'),
+        ('precisions_animation', 'Précisions animation'),
+        ('precisions_mise_en_avant', 'Précisions mise en avant'),
+        ('precisions_incident', 'Précisions incident'),
+        ('precisions_clients', 'Précisions clients'),
+        ('precisions_ressenti', 'Précisions ressenti'),
+        ('remarques_chef_boucher', 'Remarques chef boucher'),
+        ('avis_eleveur', 'Avis éleveur'),
+        ('ls_precisions_lineaire', 'Précisions linéaire LS'),
+        ('ls_precisions_qualite', 'Précisions qualité LS'),
+        ('ls_precisions_outils', 'Précisions outils LS'),
+        ('trad_precisions_lineaire', 'Précisions linéaire trad'),
+        ('trad_precisions_qualite', 'Précisions qualité trad'),
+        ('trad_precisions_outils', 'Précisions outils trad')
+      ] %}
+      <div class="field-group">
+        <label class="field-label" for="{{ field }}">{{ label }}</label>
+        <textarea id="{{ field }}" name="{{ field }}" class="field-input field-textarea">{{ cr|attr(field) or '' }}</textarea>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="sub-section">
+      <h3 class="sub-section-title">Listes multi-choix</h3>
+      <p class="field-hint">Une ligne par valeur. C’est pratique pour corriger rapidement un choix mal saisi.</p>
+      <div class="field-row">
+        {% for field, label in list_fields %}
+        <div class="field-group" style="flex:1 1 320px">
+          <label class="field-label" for="{{ field }}">{{ label }}</label>
+          <textarea id="{{ field }}" name="{{ field }}" class="field-input field-textarea" rows="4">{{ list_values[field] }}</textarea>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ next_url }}" class="btn btn-back">← Annuler</a>
+      <button type="submit" class="btn btn-primary">Enregistrer les corrections</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

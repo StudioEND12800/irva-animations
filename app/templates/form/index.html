@@ -12,8 +12,8 @@
 <div class="card-grid" style="max-width:700px;margin:0 auto">
   <div class="info-card">
     <div class="icon">💾</div>
-    <h3>Sauvegarde automatique</h3>
-    <p>Reprenez où vous vous êtes arrêté·e grâce au lien de reprise affiché à l’écran et envoyé par e-mail si disponible.</p>
+    <h3>Brouillon récupérable</h3>
+    <p>À chaque sauvegarde, un lien et un code de reprise s’affichent à l’écran. Conservez-les même si l’e-mail n’arrive pas.</p>
   </div>
   <div class="info-card">
     <div class="icon">📱</div>
@@ -32,21 +32,28 @@
   </div>
 </div>
 
-<div style="text-align:center;margin-top:32px">
-  <p style="font-size:13px;color:var(--gray-600)">
-    Vous avez déjà commencé un compte-rendu ?
-    <a href="#" id="btn-reprendre" style="color:var(--green)">Reprendre avec mon lien</a>
-  </p>
+<div class="resume-entry-card">
+  <h3>Reprendre un brouillon</h3>
+  <p>Collez le lien complet de reprise ou simplement le code reçu à l’écran ou par e-mail.</p>
+  <form method="POST" action="{{ url_for('submit.reprendre_saisie') }}" class="resume-entry-form">
+    <input
+      type="text"
+      name="resume_value"
+      class="field-input"
+      placeholder="Ex. https://app.veau-aveyron.fr/reprendre/... ou juste le code"
+      autocomplete="off"
+      required
+    >
+    <button type="submit" class="btn btn-primary">Reprendre mon brouillon</button>
+  </form>
 </div>
 
-<script>
-document.getElementById('btn-reprendre').addEventListener('click', e => {
-  e.preventDefault();
-  const token = prompt('Collez votre lien de reprise ou le code reçu par e-mail :');
-  if (token) {
-    const match = token.match(/\/reprendre\/([A-Za-z0-9_-]+)/);
-    window.location.href = '/reprendre/' + (match ? match[1] : token.trim());
-  }
-});
-</script>
+<div class="resume-entry-card">
+  <h3>Comment enregistrer puis retrouver un brouillon</h3>
+  <ol class="helper-list">
+    <li>Dans le formulaire, utilisez le bouton <strong>Sauvegarder et continuer plus tard</strong>.</li>
+    <li>Conservez le lien de reprise et le code affichés à l’écran.</li>
+    <li>Pour revenir plus tard, collez ce lien ou ce code dans le bloc ci-dessus.</li>
+  </ol>
+</div>
 {% endblock %}

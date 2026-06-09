@@ -3,11 +3,13 @@ import os
 import re
 import unicodedata
 from collections import Counter, defaultdict
+from datetime import datetime
 from functools import wraps
 
 from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
                    render_template, request, session, url_for)
 from models import CompteRendu, Photo, db
+from app.utils import infer_department_code, infer_region
 from sqlalchemy import extract, func, or_
 from sqlalchemy.orm import load_only
 
@@ -44,6 +46,107 @@ PRICE_COMPARISON_FIELDS = [
     ('jarret', 'Jarret'),
     ('hache', 'Hache'),
 ]
+ADMIN_LIST_FIELDS = [
+    ('rayons_presents', 'Rayons presents'),
+    ('ls_barquettes', 'Barquettes LS'),
+    ('ls_outils_com', 'Outils com LS'),
+    ('trad_outils_com', 'Outils com trad'),
+    ('morceaux_presents', 'Morceaux presents'),
+    ('emplacement_animation', 'Emplacements animation'),
+    ('outils_animation', 'Outils animation'),
+    ('mise_en_avant', 'Mises en avant'),
+    ('type_incident', 'Types d incident'),
+    ('tranche_age', 'Tranches d age'),
+    ('attitude_clients', 'Attitudes clients'),
+    ('type_questions', 'Types de questions'),
+    ('echanges_chef_boucher', 'Echanges chef boucher'),
+    ('photos_situation', 'Situation photos'),
+]
+ADMIN_TEXT_FIELDS = [
+    'statut',
+    'ref_animation',
+    'notes_admin',
+    'nom_prenom',
+    'num_cheptel',
+    'email',
+    'animation_solo',
+    'nom_coeleveuse',
+    'filiere',
+    'enseigne',
+    'nom_magasin',
+    'code_postal',
+    'commune',
+    'nom_parrain',
+    'nom_chef_boucher',
+    'anciennete_chef_boucher',
+    'frequentation',
+    'approvisionnement',
+    'ruptures',
+    'ventes_supplementaires',
+    'incident',
+    'incident_majeur',
+    'clients_connaissaient_vas',
+    'ressenti_mise_en_place',
+    'ressenti_accroche',
+    'ressenti_argumentaire',
+    'interesse_formation',
+    'kit_irva',
+    'kit_interbev',
+    'precision_prix',
+    'commentaire_prix',
+    'precisions_animation',
+    'precisions_mise_en_avant',
+    'precisions_incident',
+    'precisions_clients',
+    'precisions_ressenti',
+    'remarques_chef_boucher',
+    'avis_eleveur',
+    'ls_barquettes_sur_place',
+    'ls_visibilite',
+    'ls_precisions_lineaire',
+    'ls_qualite_decoupe',
+    'ls_precisions_qualite',
+    'ls_precisions_outils',
+    'ls_autre_veau',
+    'ls_autre_veau_marque',
+    'trad_visibilite',
+    'trad_precisions_lineaire',
+    'trad_qualite_decoupe',
+    'trad_precisions_qualite',
+    'trad_precisions_outils',
+    'trad_autre_veau',
+    'trad_autre_veau_marque',
+]
+ADMIN_FLOAT_FIELDS = [
+    'prix_vas_escalope',
+    'prix_vas_saute',
+    'prix_vas_roti',
+    'prix_vas_tendron',
+    'prix_vas_jarret',
+    'prix_vas_hache',
+    'prix_autre_escalope',
+    'prix_autre_saute',
+    'prix_autre_roti',
+    'prix_autre_tendron',
+    'prix_autre_jarret',
+    'prix_autre_hache',
+    'ls_lineaire',
+    'ls_autre_veau_lineaire',
+    'trad_lineaire',
+]
+ADMIN_DATE_FIELDS = ['date_premier_jour', 'date_dernier_jour']
+ADMIN_STATUT_OPTIONS = ['brouillon', 'soumis', 'valide']
+ADMIN_FILIERE_OPTIONS = ['SA4R', 'Natera', 'Sudries', 'Cadars', 'Autre']
+ADMIN_ENSEIGNE_OPTIONS = [
+    'Auchan',
+    'Carrefour',
+    'E.Leclerc',
+    "Halle de l'Aveyron",
+    'Metro',
+    'Boucherie indépendante',
+    'Autre',
+]
+ADMIN_SOLO_OPTIONS = ['Seul', 'Avec un autre éleveur·se']
 WORKBOOK_SHEETS = [
     {
         'key': 'decharge-donnees',
@@ -160,6 +263,7 @@ SHEET_AUDIT_RULES = {
     'notice-decharge': [
         "Les compteurs contrôlent uniquement les champs bruts présents ou absents dans `compte_rendu`.",
         "Aucune valeur n’est déduite à partir du texte libre.",
+        "Région = déduction automatique depuis le code postal quand il est exploitable.",
     ],
     'synthese-global': [
         "Répartition filière = `GROUP BY filiere` sur le périmètre filtré.",
@@ -263,6 +367,60 @@ def admin_required(f):
     return decorated
 
 
+def _parse_admin_date(raw):
+    value = (raw or '').strip()
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
+def _parse_admin_float(raw):
+    value = (raw or '').strip().replace(',', '.')
+    if not value:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
+def _multiline_field_value(raw):
+    return '\n'.join(_json_list(raw))
+
+
+def _parse_multiline_field(raw):
+    items = [line.strip() for line in (raw or '').splitlines() if line.strip()]
+    return json.dumps(items)
+
+
+def _draft_resume_payload(cr):
+    return {
+        'token': cr.token,
+        'url': url_for('submit.reprendre', token=cr.token, _external=True),
+    }
+
+
+def _draft_step_number(cr):
+    if not cr.filiere:
+        return 1
+    if not cr.nom_magasin:
+        return 2
+    if not cr.rayons_presents:
+        return 3
+    if not cr.morceaux_presents:
+        return 4
+    if not cr.frequentation:
+        return 5
+    if not cr.attitude_clients:
+        return 6
+    if not cr.ressenti_mise_en_place:
+        return 7
+    return 8
+
+
 @dashboard_bp.route('/login', methods=['GET', 'POST'])
 def login():
     next_url = request.args.get('next', '').strip()
@@ -334,6 +492,7 @@ def sheet_view(sheet_key):
 def detail(cr_id):
     cr = CompteRendu.query.get_or_404(cr_id)
     photos = Photo.query.filter_by(cr_id=cr_id).all()
+    resume_link = _draft_resume_payload(cr) if cr.statut == 'brouillon' else None
 
     data = {k: _json_list(getattr(cr, k)) for k in [
         'rayons_presents',
@@ -351,7 +510,7 @@ def detail(cr_id):
         'type_incident',
     ]}
 
-    return render_template('dashboard/detail.html', cr=cr, photos=photos, data=data)
+    return render_template('dashboard/detail.html', cr=cr, photos=photos, data=data, resume_link=resume_link)
 
 
 @dashboard_bp.route('/cr/<int:cr_id>/valider', methods=['POST'])
@@ -369,42 +528,43 @@ def valider(cr_id):
 @admin_required
 def modifier(cr_id):
     cr = CompteRendu.query.get_or_404(cr_id)
+    next_url = request.args.get('next', '').strip() or url_for('dashboard.detail', cr_id=cr_id)
     if request.method == 'POST':
-        cr.nom_prenom = request.form.get('nom_prenom', cr.nom_prenom)
-        cr.email = request.form.get('email', cr.email)
-        cr.filiere = request.form.get('filiere', cr.filiere)
-        cr.enseigne = request.form.get('enseigne', cr.enseigne)
-        cr.nom_magasin = request.form.get('nom_magasin', cr.nom_magasin)
-        cr.code_postal = request.form.get('code_postal', cr.code_postal)
-        cr.commune = request.form.get('commune', cr.commune)
-        cr.region = request.form.get('region', cr.region)
-        cr.nom_chef_boucher = request.form.get('nom_chef_boucher', cr.nom_chef_boucher)
-        cr.anciennete_chef_boucher = request.form.get('anciennete_chef_boucher', cr.anciennete_chef_boucher)
-        cr.statut = request.form.get('statut', cr.statut)
-        cr.notes_admin = request.form.get('notes_admin', cr.notes_admin)
-        # Prix VAS
-        def _parse_prix(v):
-            if not v:
-                return None
-            try:
-                f = float(str(v).replace(',', '.'))
-                return f if 0 < f <= 300 else None
-            except ValueError:
-                return None
-        cr.prix_vas_escalope = _parse_prix(request.form.get('prix_vas_escalope'))
-        cr.prix_vas_saute = _parse_prix(request.form.get('prix_vas_saute'))
-        cr.prix_vas_roti = _parse_prix(request.form.get('prix_vas_roti'))
-        cr.prix_vas_tendron = _parse_prix(request.form.get('prix_vas_tendron'))
-        cr.prix_vas_jarret = _parse_prix(request.form.get('prix_vas_jarret'))
-        cr.prix_vas_hache = _parse_prix(request.form.get('prix_vas_hache'))
+        for field in ADMIN_TEXT_FIELDS:
+            setattr(cr, field, request.form.get(field, '').strip())
+
+        for field in ADMIN_DATE_FIELDS:
+            setattr(cr, field, _parse_admin_date(request.form.get(field)))
+
+        for field in ADMIN_FLOAT_FIELDS:
+            setattr(cr, field, _parse_admin_float(request.form.get(field)))
+
+        for field, _label in ADMIN_LIST_FIELDS:
+            setattr(cr, field, _parse_multiline_field(request.form.get(field)))
+
+        manual_departement = request.form.get('code_departement', '').strip().upper()
+        cr.code_departement = manual_departement or infer_department_code(cr.code_postal)
+        manual_region = request.form.get('region', '').strip()
+        cr.region = manual_region or infer_region(cr.code_postal, cr.code_departement)
         cr.prix_moyen_vas = cr.calc_prix_moyen_vas()
         cr.prix_moyen_autre = cr.calc_prix_moyen_autre()
         db.session.commit()
         flash('Compte-rendu modifié.', 'success')
-        next_url = request.form.get('next') or url_for('dashboard.detail', cr_id=cr_id)
-        return redirect(next_url)
-    # GET : affichage fiche détail
-    return redirect(url_for('dashboard.detail', cr_id=cr_id))
+        return redirect(request.form.get('next') or next_url)
+
+    return render_template(
+        'dashboard/edit.html',
+        cr=cr,
+        next_url=next_url,
+        resume_link=_draft_resume_payload(cr) if cr.statut == 'brouillon' else None,
+        list_fields=ADMIN_LIST_FIELDS,
+        list_values={field: _multiline_field_value(getattr(cr, field)) for field, _label in ADMIN_LIST_FIELDS},
+        price_fields=PRICE_COMPARISON_FIELDS,
+        statut_options=ADMIN_STATUT_OPTIONS,
+        filiere_options=ADMIN_FILIERE_OPTIONS,
+        enseigne_options=ADMIN_ENSEIGNE_OPTIONS,
+        solo_options=ADMIN_SOLO_OPTIONS,
+    )
 
 
 @dashboard_bp.route('/cr/<int:cr_id>/supprimer', methods=['POST'])
@@ -467,6 +627,9 @@ def test_mail():
     except Exception as e:
         flash(f'Erreur mail : {e}', 'error')
     return redirect(url_for('dashboard.index'))
+
+
+def _get_filters():
     return {
         'filiere': request.args.get('filiere', '').strip(),
         'annee': request.args.get('annee', '').strip(),
@@ -645,8 +808,7 @@ def _build_sheet_page(sheet_key, dataset, filters):
 
 
 def _page_notice(dataset, filters):
-    records = dataset['all']
-    active_records = dataset['active']
+    records = dataset['active']
     missing_region = sum(1 for cr in records if not (cr.region or '').strip())
     missing_price = sum(1 for cr in records if cr.prix_moyen_vas is None)
     missing_store = sum(1 for cr in records if not (cr.nom_magasin or '').strip())
@@ -655,7 +817,7 @@ def _page_notice(dataset, filters):
             'type': 'cards',
             'title': 'Points de controle',
             'cards': [
-                {'value': _fmt_int(len(records)), 'label': 'formulaires concernes'},
+                {'value': _fmt_int(len(records)), 'label': 'formulaires du périmètre'},
                 {'value': _fmt_int(missing_region), 'label': 'regions manquantes'},
                 {'value': _fmt_int(missing_store), 'label': 'magasins manquants'},
                 {'value': _fmt_int(missing_price), 'label': 'prix VAS absents'},
@@ -665,10 +827,11 @@ def _page_notice(dataset, filters):
             'type': 'notes',
             'title': 'Lecture du dashboard',
             'items': [
-                'Le mode "CR complets" correspond aux formulaires soumis ou valides et reproduit la logique "CR OK" du fichier Excel.',
+                'Le périmètre suit le filtre de statut courant; par défaut, le mode "CR complets" correspond aux formulaires soumis ou valides et reproduit la logique "CR OK" du fichier Excel.',
                 'Toutes les vues se recalculent directement depuis la base: chaque nouveau formulaire apparait ici sans export manuel.',
                 'Les champs multi-choix (rayons, barquettes, outils, questions) sont decomposes pour reconstituer les tableaux croises du classeur.',
                 'Les moyennes de prix ignorent les valeurs vides ou nulles afin de rester comparables avec les pivots Excel.',
+                'La region n’est pas demandee dans le formulaire: elle est deduite automatiquement depuis le code postal lorsqu’il est exploitable; sinon elle reste vide.',
                 'Les noms magasins restent affiches tels qu’ils ont ete saisis, mais la vue "Liste des magasins" aide a repérer les doublons proches.',
             ],
         },
@@ -686,7 +849,7 @@ def _page_notice(dataset, filters):
         {
             'type': 'chart',
             'title': 'Activite de la selection',
-            'chart': _monthly_activity_chart(active_records, 'CR sur la selection active')['chart'],
+            'chart': _monthly_activity_chart(records, 'CR sur la selection active')['chart'],
         },
     ]
     return {'summary': 'Mode d’emploi du dashboard et controle de la qualite de saisie.', 'sections': sections}
@@ -722,7 +885,7 @@ def _page_decharge(dataset, filters):
                     {'text': 'Ouvrir', 'href': url_for('dashboard.detail', cr_id=cr.id)},
                     {'type': 'actions', 'cr_id': cr.id,
                      'delete_url': url_for('dashboard.supprimer', cr_id=cr.id),
-                     'edit_url': url_for('dashboard.detail', cr_id=cr.id)},
+                     'edit_url': url_for('dashboard.modifier', cr_id=cr.id, next=request.full_path)},
                 ]
                 for cr in records
             ],
@@ -1009,15 +1172,21 @@ def _page_brouillons(dataset, filters):
         {
             'type': 'table',
             'title': 'Brouillons ouverts',
-            'columns': ['Creation', 'Eleveur', 'Magasin', 'Filiere', 'Derniere date animation', 'Fiche'],
+            'columns': ['Creation', 'Eleveur', 'Email', 'Magasin', 'Filiere', 'Etape estimee', 'Code reprise', 'Derniere date animation', 'Fiche', 'Actions'],
             'rows': [
                 [
                     _fmt_datetime(cr.created_at),
                     cr.nom_prenom or '—',
+                    cr.email or '—',
                     cr.nom_magasin or '—',
                     cr.filiere or '—',
+                    f'Etape {_draft_step_number(cr)}/8',
+                    cr.token,
                     _fmt_date(cr.date_premier_jour),
                     {'text': 'Ouvrir', 'href': url_for('dashboard.detail', cr_id=cr.id)},
+                    {'type': 'actions', 'cr_id': cr.id,
+                     'delete_url': url_for('dashboard.supprimer', cr_id=cr.id),
+                     'edit_url': url_for('dashboard.modifier', cr_id=cr.id, next=request.full_path)},
                 ]
                 for cr in records
             ],

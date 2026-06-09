@@ -21,6 +21,25 @@ document.querySelectorAll('input[type=checkbox]:checked').forEach(inp => {
   inp.closest('.checkbox-option')?.classList.add('selected');
 });
 
+// ── Copy buttons ───────────────────────────────────────────────────────
+document.querySelectorAll('[data-copy]').forEach(button => {
+  if (button.dataset.copyInit === '1') return;
+  button.dataset.copyInit = '1';
+  const defaultLabel = button.textContent;
+  button.addEventListener('click', async () => {
+    const value = button.getAttribute('data-copy');
+    try {
+      await navigator.clipboard.writeText(value);
+      button.textContent = 'Copié';
+      setTimeout(() => {
+        button.textContent = defaultLabel;
+      }, 1800);
+    } catch (error) {
+      button.textContent = 'À copier';
+    }
+  });
+});
+
 // ── Textarea word count ───────────────────────────────────────────────
 document.querySelectorAll('textarea[data-limit]').forEach(ta => {
   const counter = ta.nextElementSibling;

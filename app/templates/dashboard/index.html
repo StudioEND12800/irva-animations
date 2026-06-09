@@ -91,7 +91,7 @@
           <td><span class="badge badge-{{ cr.statut }}">{{ cr.statut }}</span></td>
           <td><a href="{{ url_for('dashboard.detail', cr_id=cr.id) }}" class="table-link">Ouvrir</a></td>
           <td class="td-actions">
-            <a href="{{ url_for('dashboard.detail', cr_id=cr.id) }}" class="btn-action btn-action-edit" title="Modifier">&#9998;</a>
+            <a href="{{ url_for('dashboard.modifier', cr_id=cr.id, next=request.full_path) }}" class="btn-action btn-action-edit" title="Modifier">&#9998;</a>
             <form method="POST" action="{{ url_for('dashboard.supprimer', cr_id=cr.id) }}" style="display:inline" onsubmit="return confirm('Supprimer ce compte-rendu ?')">
               <button type="submit" class="btn-action btn-action-del" title="Supprimer">&#128465;</button>
             </form>

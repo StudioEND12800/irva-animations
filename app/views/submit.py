@@ -3,11 +3,13 @@ import json
 import logging
 import secrets
 import base64
+import re
 from datetime import datetime
 from flask import (Blueprint, render_template, request, redirect,
                    url_for, session, flash, current_app, jsonify)
 from werkzeug.utils import secure_filename
 from models import db, CompteRendu, Photo
+from app.utils import infer_department_code, infer_region
 
 log = logging.getLogger(__name__)
 
@@ -46,6 +48,15 @@ def index():
     return render_template('form/index.html')
 
 
+@submit_bp.route('/reprendre', methods=['POST'])
+def reprendre_saisie():
+    token = _extract_resume_token(request.form.get('resume_value', ''))
+    if not token:
+        flash('Lien ou code de reprise invalide. Collez le lien complet ou le code reçu.', 'error')
+        return redirect(url_for('submit.index'))
+    return redirect(url_for('submit.reprendre', token=token))
+
+
 @submit_bp.route('/reprendre/<token>')
 def reprendre(token):
     cr = CompteRendu.query.filter_by(token=token).first_or_404()
@@ -58,7 +69,7 @@ def reprendre(token):
 
 def _etape_courante(cr):
     """Retourne l'étape où l'éleveur s'est arrêté."""
-    if not cr.filiere:
+    if not _step1_complete(cr):
         return 1
     if not cr.nom_magasin:
         return 2
@@ -75,17 +86,103 @@ def _etape_courante(cr):
     return 8
 
 
+def _step1_complete(cr):
+    if not cr.date_premier_jour:
+        return False
+    if not (cr.nom_prenom or '').strip():
+        return False
+    if not (cr.num_cheptel or '').strip():
+        return False
+    if not _is_valid_email(cr.email):
+        return False
+    if not (cr.animation_solo or '').strip():
+        return False
+    if cr.animation_solo == 'Avec un autre éleveur·se' and not (cr.nom_coeleveuse or '').strip():
+        return False
+    if not (cr.filiere or '').strip():
+        return False
+    return True
+
+
+def _blocked_step_number(cr, requested_num):
+    current_step = _etape_courante(cr)
+    if requested_num > current_step:
+        return current_step
+    return None
+
+
+def _blocked_step_message(step_num):
+    if step_num == 1:
+        return "Complétez d'abord toutes les informations de l'étape 1 avant de passer au magasin."
+    return f"Complétez d'abord l'étape {step_num} avant d'aller plus loin."
+
+
+def _step_errors(cr, num):
+    if num != 1:
+        return []
+
+    errors = []
+    if not cr.date_premier_jour:
+        errors.append("Renseignez la date du premier jour d'animation.")
+    if not (cr.nom_prenom or '').strip():
+        errors.append("Renseignez votre nom et prénom.")
+    if not (cr.num_cheptel or '').strip():
+        errors.append("Renseignez votre numéro de cheptel.")
+    if not _is_valid_email(cr.email):
+        errors.append("Renseignez une adresse e-mail valide.")
+    if not (cr.animation_solo or '').strip():
+        errors.append("Indiquez si vous avez réalisé l'animation seul·e ou accompagné·e.")
+    if cr.animation_solo == 'Avec un autre éleveur·se' and not (cr.nom_coeleveuse or '').strip():
+        errors.append("Renseignez le nom du ou de la co-éleveur·se.")
+    if not (cr.filiere or '').strip():
+        errors.append("Sélectionnez la filière concernée.")
+    return errors
+
+
+def _is_valid_email(value):
+    email = (value or '').strip()
+    return bool(email and re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email))
+
+
+def _draft_resume_for_step(cr, num):
+    if cr.statut != 'brouillon' or num < 2 or not _step1_complete(cr):
+        return None
+    return _resume_link_payload(cr)
+
+
 # ── Étapes du formulaire ──────────────────────────────────────────────────────
 
 @submit_bp.route('/formulaire/<int:num>', methods=['GET', 'POST'])
 def etape(num):
     cr = get_or_create_cr()
+    if num < 1 or num > 8:
+        return redirect(url_for('submit.etape', num=1))
+
+    redirect_step = _blocked_step_number(cr, num)
+    if redirect_step is not None:
+        flash(_blocked_step_message(redirect_step), 'warning')
+        return redirect(url_for('submit.etape', num=redirect_step))
 
     if request.method == 'POST':
         _save_etape(cr, num, request.form, request.files)
-        db.session.commit()
+        errors = _step_errors(cr, num)
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            return render_template(
+                f'form/etape{num}.html',
+                cr=cr,
+                num=num,
+                total=8,
+                resume_notice=None,
+                draft_resume=_draft_resume_for_step(cr, num),
+            )
 
         if request.form.get('action') == 'sauvegarder':
+            db.session.commit()
+            if num == 1:
+                flash("La sauvegarde par brouillon commence à l'étape magasin.", 'info')
+                return redirect(url_for('submit.etape', num=2))
             mail_sent = _envoyer_lien_reprise(cr)
             session['resume_notice'] = {
                 'token': cr.token,
@@ -97,13 +194,14 @@ def etape(num):
                 flash('Brouillon sauvegardé. Le mail de reprise n’a pas pu être envoyé ; copiez le lien ci-dessous.', 'warning')
             return redirect(url_for('submit.etape', num=num))
 
+        db.session.commit()
         if num < 8:
             return redirect(url_for('submit.etape', num=num + 1))
         else:
             return redirect(url_for('submit.soumettre'))
 
     resume_notice = _resume_notice_payload(session.pop('resume_notice', None))
-    draft_resume = _resume_link_payload(cr) if cr.statut == 'brouillon' and cr.email else None
+    draft_resume = _draft_resume_for_step(cr, num)
     return render_template(
         f'form/etape{num}.html',
         cr=cr,
@@ -173,7 +271,8 @@ def _save_etape(cr, num, form, files):
         cr.nom_magasin = form.get('nom_magasin', '').strip()
         cr.code_postal = form.get('code_postal', '').strip()
         cr.commune = form.get('commune', '').strip()
-        cr.code_departement = (cr.code_postal[:2] if cr.code_postal else '')
+        cr.code_departement = infer_department_code(cr.code_postal)
+        cr.region = infer_region(cr.code_postal, cr.code_departement)
         cr.nom_parrain = form.get('nom_parrain', '').strip()
         cr.nom_chef_boucher = form.get('nom_chef_boucher', '').strip()
         cr.anciennete_chef_boucher = form.get('anciennete_chef_boucher', '').strip()
@@ -418,6 +517,15 @@ def _envoyer_notifications(cr):
 
 def _resume_url(cr):
     return url_for('submit.reprendre', token=cr.token, _external=True)
+
+
+def _extract_resume_token(raw_value):
+    raw = (raw_value or '').strip()
+    if not raw:
+        return ''
+    match = re.search(r'/reprendre/([A-Za-z0-9_-]+)', raw)
+    token = match.group(1) if match else raw
+    return token if re.fullmatch(r'[A-Za-z0-9_-]+', token) else ''
 
 
 def _resume_link_payload(cr):
