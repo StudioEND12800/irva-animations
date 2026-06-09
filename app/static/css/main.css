@@ -50,12 +50,15 @@ body {
 }
 
 /* ── Progress Steps ── */
+.progress-steps-shell {
+  margin-bottom: 28px;
+  overflow: hidden;
+}
 .progress-steps {
   display: flex;
   align-items: center;
-  margin-bottom: 28px;
-  overflow-x: auto;
   padding-bottom: 4px;
+  width: 100%;
 }
 .step {
   display: flex; flex-direction: column; align-items: center;
@@ -81,6 +84,40 @@ body {
   min-width: 20px; margin: 0 4px; margin-bottom: 20px;
 }
 .step-line.done { background: var(--green-light); }
+
+@media (max-width: 640px) {
+  .progress-steps-shell {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    margin-inline: -4px;
+    padding-inline: 4px;
+  }
+
+  .progress-steps-shell::-webkit-scrollbar {
+    display: none;
+  }
+
+  .progress-steps {
+    width: max-content;
+    min-width: max-content;
+    padding: 0 18px 4px;
+  }
+
+  .step {
+    min-width: 72px;
+  }
+
+  .step-label {
+    font-size: 9px;
+  }
+
+  .step-line {
+    flex: 0 0 28px;
+    min-width: 28px;
+    margin-inline: 6px;
+  }
+}
 
 /* ── Form Card ── */
 .form-card {

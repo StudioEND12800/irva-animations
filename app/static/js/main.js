@@ -186,6 +186,38 @@ function initUploadZone(zoneId, inputId, gridId) {
 initUploadZone('upload-zone-photos', 'photos-input', 'photo-grid');
 initUploadZone('upload-zone-signature', 'sig-boucher-input', null);
 
+// ── Progress track auto-shift on mobile ──────────────────────────────
+function initProgressSteps() {
+  document.querySelectorAll('[data-progress-shell]').forEach(shell => {
+    const track = shell.querySelector('.progress-steps');
+    const activeStep = track?.querySelector('.step.active');
+    if (!track || !activeStep) return;
+
+    const update = () => {
+      if (!window.matchMedia('(max-width: 640px)').matches) {
+        shell.scrollLeft = 0;
+        return;
+      }
+
+      const maxScroll = Math.max(track.scrollWidth - shell.clientWidth, 0);
+      if (!maxScroll) {
+        shell.scrollLeft = 0;
+        return;
+      }
+
+      const activeCenter = activeStep.offsetLeft + (activeStep.offsetWidth / 2);
+      const anchor = 0.38;
+      const target = Math.max(0, Math.min(activeCenter - (shell.clientWidth * anchor), maxScroll));
+      shell.scrollTo({ left: target, behavior: 'auto' });
+    };
+
+    requestAnimationFrame(update);
+    window.addEventListener('resize', update, { passive: true });
+  });
+}
+
+initProgressSteps();
+
 // ── Inject current year in footer ─────────────────────────────────────
 // (handled server-side via context processor)
 
