@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import secrets
 import base64
 from datetime import datetime
@@ -7,6 +8,8 @@ from flask import (Blueprint, render_template, request, redirect,
                    url_for, session, flash, current_app, jsonify)
 from werkzeug.utils import secure_filename
 from models import db, CompteRendu, Photo
+
+log = logging.getLogger(__name__)
 
 submit_bp = Blueprint('submit', __name__)
 

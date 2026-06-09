@@ -437,7 +437,36 @@ def stats():
     return jsonify(chart['data'])
 
 
-def _get_filters():
+@dashboard_bp.route('/test-mail')
+@admin_required
+def test_mail():
+    """Route de diagnostic : envoie un mail de test à l'adresse admin."""
+    dest = current_app.config.get('ADMIN_EMAIL', 'contact@irva.fr')
+    cfg = {
+        'MAIL_SERVER': current_app.config.get('MAIL_SERVER'),
+        'MAIL_PORT': current_app.config.get('MAIL_PORT'),
+        'MAIL_USERNAME': current_app.config.get('MAIL_USERNAME'),
+        'MAIL_USE_SSL': current_app.config.get('MAIL_USE_SSL'),
+        'MAIL_DEFAULT_SENDER': current_app.config.get('MAIL_DEFAULT_SENDER'),
+        'password_set': bool(current_app.config.get('MAIL_PASSWORD')),
+    }
+    try:
+        from flask_mail import Mail, Message
+        mail = Mail(current_app)
+        msg = Message(
+            subject='[IRVA] Test mail — configuration OK',
+            recipients=[dest],
+            html=(
+                '<p>Ce mail de test confirme que la configuration SMTP de '
+                'l\'application IRVA Animations est fonctionnelle.</p>'
+                f'<pre style="font-size:11px;color:#555">{cfg}</pre>'
+            ),
+        )
+        mail.send(msg)
+        flash(f'Mail de test envoyé à {dest}. Vérifie ta boîte de réception.', 'success')
+    except Exception as e:
+        flash(f'Erreur mail : {e}', 'error')
+    return redirect(url_for('dashboard.index'))
     return {
         'filiere': request.args.get('filiere', '').strip(),
         'annee': request.args.get('annee', '').strip(),
