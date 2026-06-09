@@ -1163,6 +1163,12 @@ def _page_donnee_liste(dataset, filters):
             'columns': ['Region', 'CR'],
             'rows': [[label, _fmt_int(count)] for label, count in _counts_by(records, lambda cr: cr.region or 'Non renseignee')],
         },
+        {
+            'type': 'table',
+            'title': 'Departements',
+            'columns': ['Departement', 'CR'],
+            'rows': [[label, _fmt_int(count)] for label, count in _counts_by(records, lambda cr: cr.code_departement or 'Non renseigne')],
+        },
     ]
     return {'summary': 'Remplace les listes fixes Excel par des references tirees du live.', 'sections': sections}
 
