@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import UniqueConstraint
 
 db = SQLAlchemy()
 
@@ -156,3 +157,45 @@ class Photo(db.Model):
     filename = db.Column(db.String(500))
     original_name = db.Column(db.String(500))
     uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class MagasinReference(db.Model):
+    __tablename__ = 'magasin_reference'
+
+    id = db.Column(db.Integer, primary_key=True)
+    enseigne = db.Column(db.String(100))
+    nom_reference = db.Column(db.String(200), nullable=False)
+    nom_normalise = db.Column(db.String(200), nullable=False, index=True)
+    code_postal = db.Column(db.String(10))
+    commune = db.Column(db.String(100))
+    code_departement = db.Column(db.String(5))
+    region = db.Column(db.String(100))
+    adresse = db.Column(db.String(200))
+    actif = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    aliases = db.relationship(
+        'MagasinAlias',
+        backref='reference',
+        lazy=True,
+        cascade='all, delete-orphan',
+    )
+
+
+class MagasinAlias(db.Model):
+    __tablename__ = 'magasin_alias'
+    __table_args__ = (
+        UniqueConstraint('reference_id', 'alias_normalise', name='uq_magasin_alias_reference'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    reference_id = db.Column(db.Integer, db.ForeignKey('magasin_reference.id'), nullable=False)
+    alias = db.Column(db.String(200), nullable=False)
+    alias_normalise = db.Column(db.String(200), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

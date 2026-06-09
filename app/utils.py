@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from typing import Union
 
 DEPARTMENT_TO_REGION = {
@@ -195,3 +196,43 @@ def infer_region(postal_code: object = None, code_departement: object = None) ->
     if not dept:
         dept = infer_department_code(postal_code)
     return DEPARTMENT_TO_REGION.get(dept, "")
+
+
+def compact_spaces(value: object) -> str:
+    """
+    Réduit les espaces multiples à un seul espace et retire les bords.
+    """
+    return re.sub(r'\s+', ' ', str(value or '')).strip()
+
+
+def normalize_store_name(name: object) -> str:
+    """
+    Normalise un nom de magasin pour les correspondances techniques.
+    """
+    normalized = unicodedata.normalize('NFKD', str(name or ''))
+    normalized = normalized.encode('ascii', 'ignore').decode('ascii').lower()
+    normalized = re.sub(r'[^a-z0-9]+', ' ', normalized)
+    return re.sub(r'\s+', ' ', normalized).strip() or 'non-renseigne'
+
+
+def guess_enseigne_from_store_name(name: object) -> str:
+    """
+    Déduit une enseigne probable depuis un nom magasin libre.
+    """
+    normalized = normalize_store_name(name)
+    if not normalized or normalized == 'non-renseigne':
+        return ''
+
+    if 'leclerc' in normalized:
+        return 'E.Leclerc'
+    if normalized.startswith('auchan'):
+        return 'Auchan'
+    if normalized.startswith('carrefour'):
+        return 'Carrefour'
+    if normalized.startswith('metro'):
+        return 'Metro'
+    if normalized.startswith('halle de l aveyron'):
+        return "Halle de l'Aveyron"
+    if normalized.startswith('boucherie'):
+        return 'Boucherie indépendante'
+    return 'Autre'
