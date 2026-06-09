@@ -1,17 +1,23 @@
 import json
 import os
 import re
-import unicodedata
 from collections import Counter, defaultdict
 from datetime import datetime
 from functools import wraps
 
 from flask import (Blueprint, abort, current_app, flash, jsonify, redirect,
                    render_template, request, session, url_for)
-from models import CompteRendu, Photo, db
-from app.utils import infer_department_code, infer_region
+from models import CompteRendu, MagasinAlias, MagasinReference, Photo, db
+from app.store_reference import (
+    aliases_text,
+    find_exact_store_reference,
+    find_store_reference_matches,
+    store_reference_payload,
+    sync_store_reference,
+)
+from app.utils import infer_department_code, infer_region, normalize_store_name
 from sqlalchemy import extract, func, or_
-from sqlalchemy.orm import load_only
+from sqlalchemy.orm import load_only, selectinload
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -421,6 +427,58 @@ def _draft_step_number(cr):
     return 8
 
 
+def _parse_alias_lines(raw):
+    return [line.strip() for line in (raw or '').splitlines() if line.strip()]
+
+
+def _store_reference_context(cr):
+    reference = find_exact_store_reference(
+        nom_magasin=cr.nom_magasin or '',
+        enseigne=cr.enseigne or '',
+        code_postal=cr.code_postal or '',
+        commune=cr.commune or '',
+    )
+    return {
+        'reference': reference,
+        'payload': store_reference_payload(reference) if reference else None,
+        'aliases_text': aliases_text(reference) or (cr.nom_magasin or ''),
+    }
+
+
+def _replace_reference_aliases(reference, aliases):
+    cleaned_aliases = []
+    seen = set()
+    for alias in aliases:
+        cleaned = alias.strip()
+        if not cleaned:
+            continue
+        normalized = normalize_store_name(cleaned)
+        if normalized in ('', 'non-renseigne', reference.nom_normalise) or normalized in seen:
+            continue
+        seen.add(normalized)
+        cleaned_aliases.append((cleaned, normalized))
+
+    existing = {alias.alias_normalise: alias for alias in reference.aliases}
+    for normalized, alias in list(existing.items()):
+        if normalized not in seen:
+            db.session.delete(alias)
+
+    for cleaned, normalized in cleaned_aliases:
+        if normalized in existing:
+            existing[normalized].alias = cleaned
+        else:
+            reference.aliases.append(MagasinAlias(alias=cleaned, alias_normalise=normalized))
+
+
+def _store_reference_form_payload(reference=None):
+    reference = reference or MagasinReference(actif=True)
+    return {
+        'reference': reference,
+        'aliases_text': aliases_text(reference),
+        'actif_value': '1' if reference.actif or reference.id is None else '0',
+    }
+
+
 @dashboard_bp.route('/login', methods=['GET', 'POST'])
 def login():
     next_url = request.args.get('next', '').strip()
@@ -548,10 +606,31 @@ def modifier(cr_id):
         cr.region = manual_region or infer_region(cr.code_postal, cr.code_departement)
         cr.prix_moyen_vas = cr.calc_prix_moyen_vas()
         cr.prix_moyen_autre = cr.calc_prix_moyen_autre()
+        sync_requested = request.form.get('sync_store_reference') == '1'
+        reference = None
+        created = False
+        if sync_requested:
+            reference, created = sync_store_reference(
+                reference_id=request.form.get('store_reference_id', '').strip(),
+                enseigne=cr.enseigne or '',
+                nom_magasin=cr.nom_magasin or '',
+                code_postal=cr.code_postal or '',
+                commune=cr.commune or '',
+                code_departement=cr.code_departement or '',
+                region=cr.region or '',
+                aliases=_parse_alias_lines(request.form.get('store_reference_aliases', '')),
+            )
         db.session.commit()
-        flash('Compte-rendu modifié.', 'success')
+        if sync_requested and reference:
+            verb = 'créé' if created else 'mis à jour'
+            flash(f'Compte-rendu modifié et référentiel magasin {verb} : {reference.nom_reference}.', 'success')
+        elif sync_requested:
+            flash('Compte-rendu modifié. Le référentiel magasin n’a pas pu être mis à jour faute de nom magasin exploitable.', 'warning')
+        else:
+            flash('Compte-rendu modifié.', 'success')
         return redirect(request.form.get('next') or next_url)
 
+    store_reference_ctx = _store_reference_context(cr)
     return render_template(
         'dashboard/edit.html',
         cr=cr,
@@ -564,6 +643,132 @@ def modifier(cr_id):
         filiere_options=ADMIN_FILIERE_OPTIONS,
         enseigne_options=ADMIN_ENSEIGNE_OPTIONS,
         solo_options=ADMIN_SOLO_OPTIONS,
+        matched_store_reference=store_reference_ctx['payload'],
+        reference_aliases_text=store_reference_ctx['aliases_text'],
+    )
+
+
+@dashboard_bp.route('/magasins')
+@admin_required
+def magasins():
+    q = request.args.get('q', '').strip()
+    enseigne = request.args.get('enseigne', '').strip()
+    statut = request.args.get('statut', 'tous').strip() or 'tous'
+
+    if q or enseigne:
+        references = find_store_reference_matches(
+            query=q,
+            enseigne=enseigne,
+            limit=250,
+            include_inactive=True,
+        )
+    else:
+        query_builder = MagasinReference.query
+        references = (
+            query_builder
+            .options(selectinload(MagasinReference.aliases))
+            .order_by(MagasinReference.enseigne.asc(), MagasinReference.nom_reference.asc())
+            .all()
+        )
+
+    if statut == 'actif':
+        references = [reference for reference in references if reference.actif]
+    elif statut == 'inactif':
+        references = [reference for reference in references if not reference.actif]
+
+    alias_map = {reference.id: aliases_text(reference) for reference in references}
+    return render_template(
+        'dashboard/stores.html',
+        references=references,
+        alias_map=alias_map,
+        q=q,
+        enseigne=enseigne,
+        statut=statut,
+        enseigne_options=ADMIN_ENSEIGNE_OPTIONS,
+    )
+
+
+@dashboard_bp.route('/magasins/nouveau', methods=['GET', 'POST'])
+@admin_required
+def magasin_nouveau():
+    next_url = request.args.get('next', '').strip() or url_for('dashboard.magasins')
+    reference = MagasinReference(actif=True)
+
+    if request.method == 'POST':
+        next_url = request.form.get('next', '').strip() or next_url
+        reference.nom_reference = request.form.get('nom_reference', '').strip()
+        if not reference.nom_reference:
+            flash('Renseignez le nom de référence du magasin.', 'error')
+        else:
+            reference.nom_normalise = normalize_store_name(reference.nom_reference)
+            reference.enseigne = request.form.get('enseigne', '').strip()
+            reference.code_postal = request.form.get('code_postal', '').strip()
+            reference.commune = request.form.get('commune', '').strip()
+            manual_departement = request.form.get('code_departement', '').strip().upper()
+            reference.code_departement = manual_departement or infer_department_code(reference.code_postal)
+            manual_region = request.form.get('region', '').strip()
+            reference.region = manual_region or infer_region(reference.code_postal, reference.code_departement)
+            reference.adresse = request.form.get('adresse', '').strip()
+            reference.actif = request.form.get('actif', '1') == '1'
+            db.session.add(reference)
+            db.session.flush()
+            _replace_reference_aliases(reference, _parse_alias_lines(request.form.get('aliases', '')))
+            db.session.commit()
+            flash(f'Magasin de référence créé : {reference.nom_reference}.', 'success')
+            return redirect(next_url)
+
+    payload = _store_reference_form_payload(reference)
+    return render_template(
+        'dashboard/store_edit.html',
+        reference=payload['reference'],
+        aliases_text=payload['aliases_text'],
+        actif_value=payload['actif_value'],
+        next_url=next_url,
+        enseigne_options=ADMIN_ENSEIGNE_OPTIONS,
+        is_new=True,
+    )
+
+
+@dashboard_bp.route('/magasins/<int:reference_id>/modifier', methods=['GET', 'POST'])
+@admin_required
+def magasin_modifier(reference_id):
+    reference = (
+        MagasinReference.query
+        .options(selectinload(MagasinReference.aliases))
+        .get_or_404(reference_id)
+    )
+    next_url = request.args.get('next', '').strip() or url_for('dashboard.magasins')
+
+    if request.method == 'POST':
+        next_url = request.form.get('next', '').strip() or next_url
+        reference.nom_reference = request.form.get('nom_reference', '').strip()
+        if not reference.nom_reference:
+            flash('Renseignez le nom de référence du magasin.', 'error')
+        else:
+            reference.nom_normalise = normalize_store_name(reference.nom_reference)
+            reference.enseigne = request.form.get('enseigne', '').strip()
+            reference.code_postal = request.form.get('code_postal', '').strip()
+            reference.commune = request.form.get('commune', '').strip()
+            manual_departement = request.form.get('code_departement', '').strip().upper()
+            reference.code_departement = manual_departement or infer_department_code(reference.code_postal)
+            manual_region = request.form.get('region', '').strip()
+            reference.region = manual_region or infer_region(reference.code_postal, reference.code_departement)
+            reference.adresse = request.form.get('adresse', '').strip()
+            reference.actif = request.form.get('actif', '1') == '1'
+            _replace_reference_aliases(reference, _parse_alias_lines(request.form.get('aliases', '')))
+            db.session.commit()
+            flash(f'Magasin de référence mis à jour : {reference.nom_reference}.', 'success')
+            return redirect(next_url)
+
+    payload = _store_reference_form_payload(reference)
+    return render_template(
+        'dashboard/store_edit.html',
+        reference=payload['reference'],
+        aliases_text=payload['aliases_text'],
+        actif_value=payload['actif_value'],
+        next_url=next_url,
+        enseigne_options=ADMIN_ENSEIGNE_OPTIONS,
+        is_new=False,
     )
 
 
@@ -1684,10 +1889,7 @@ def _department_rows(records):
 
 
 def _normalize_store_name(name):
-    normalized = unicodedata.normalize('NFKD', name or '')
-    normalized = normalized.encode('ascii', 'ignore').decode('ascii').lower()
-    normalized = re.sub(r'[^a-z0-9]+', ' ', normalized)
-    return re.sub(r'\s+', ' ', normalized).strip() or 'non-renseigne'
+    return normalize_store_name(name)
 
 
 def _store_duplicate_rows(records):

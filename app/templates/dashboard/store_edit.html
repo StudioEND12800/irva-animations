@@ -1,0 +1,96 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{% if is_new %}Nouveau magasin{% else %}Modifier {{ reference.nom_reference }}{% endif %}{% endblock %}
+{% block content %}
+<section class="sheet-header">
+  <a href="{{ next_url }}" class="sheet-back">← Retour au référentiel</a>
+  <div class="sheet-header-grid">
+    <div>
+      <div class="dashboard-eyebrow">Référentiel interne</div>
+      <h1>{% if is_new %}Créer un magasin de référence{% else %}Modifier {{ reference.nom_reference }}{% endif %}</h1>
+      <p>Cette fiche permet d’intervenir manuellement sur les magasins proposés dans le formulaire, même sans passer par un compte-rendu reçu.</p>
+    </div>
+    <div class="sheet-summary-box">
+      <div class="sheet-summary-title">{% if is_new %}Nouveau point de vente{% else %}Intervention manuelle{% endif %}</div>
+      <p>Les alias servent à reconnaître les variantes de saisie des éleveurs et les anciens libellés du classeur.</p>
+    </div>
+  </div>
+</section>
+
+<div class="form-card">
+  <form method="POST" action="{% if is_new %}{{ url_for('dashboard.magasin_nouveau', next=next_url) }}{% else %}{{ url_for('dashboard.magasin_modifier', reference_id=reference.id, next=next_url) }}{% endif %}" novalidate>
+    <input type="hidden" name="next" value="{{ next_url }}">
+
+    <h2 class="form-section-title"><span class="section-icon">🏪</span>Fiche magasin</h2>
+    <div class="field-row col-2">
+      <div class="field-group">
+        <label class="field-label required" for="nom_reference">Nom de référence</label>
+        <input id="nom_reference" name="nom_reference" class="field-input" required value="{{ reference.nom_reference or '' }}" placeholder="ex. Auchan Champ des Fleurs">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="enseigne">Enseigne</label>
+        <div class="select-wrapper">
+          <select id="enseigne" name="enseigne" class="field-input field-select">
+            <option value=""></option>
+            {% for option in enseigne_options %}
+            <option value="{{ option }}" {% if reference.enseigne == option %}selected{% endif %}>{{ option }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row col-2">
+      <div class="field-group">
+        <label class="field-label" for="code_postal">Code postal</label>
+        <input id="code_postal" name="code_postal" class="field-input" value="{{ reference.code_postal or '' }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="commune">Commune</label>
+        <input id="commune" name="commune" class="field-input" value="{{ reference.commune or '' }}">
+      </div>
+    </div>
+
+    <div class="field-row col-2">
+      <div class="field-group">
+        <label class="field-label" for="code_departement">Code département</label>
+        <input id="code_departement" name="code_departement" class="field-input" value="{{ reference.code_departement or '' }}">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="region">Région</label>
+        <input id="region" name="region" class="field-input" value="{{ reference.region or '' }}">
+        <div class="field-hint">Laissez vide pour déduire la région à partir du code postal.</div>
+      </div>
+    </div>
+
+    <div class="field-row col-2">
+      <div class="field-group">
+        <label class="field-label" for="adresse">Adresse</label>
+        <input id="adresse" name="adresse" class="field-input" value="{{ reference.adresse or '' }}" placeholder="Facultatif">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="actif">Statut</label>
+        <div class="select-wrapper">
+          <select id="actif" name="actif" class="field-input field-select">
+            <option value="1" {% if actif_value == '1' %}selected{% endif %}>Actif</option>
+            <option value="0" {% if actif_value == '0' %}selected{% endif %}>Inactif</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-section">
+      <h3 class="sub-section-title">Alias connus</h3>
+      <div class="field-group">
+        <label class="field-label" for="aliases">Alias et variantes</label>
+        <textarea id="aliases" name="aliases" class="field-input field-textarea" rows="8">{{ aliases_text }}</textarea>
+        <div class="field-hint">Une ligne par variante. Les doublons techniques et le nom de référence principal sont filtrés automatiquement.</div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{{ next_url }}" class="btn btn-back">← Annuler</a>
+      <button type="submit" class="btn btn-primary">{% if is_new %}Créer le magasin{% else %}Enregistrer les modifications{% endif %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

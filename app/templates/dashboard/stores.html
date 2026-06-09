@@ -1,0 +1,105 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Référentiel magasins{% endblock %}
+{% block content %}
+<section class="sheet-header">
+  <div class="sheet-header-grid">
+    <div>
+      <div class="dashboard-eyebrow">Référentiel interne</div>
+      <h1>Magasins de référence</h1>
+      <p>Cette base sert à proposer des magasins cohérents dans le formulaire public et à fiabiliser les corrections admin.</p>
+    </div>
+    <div class="sheet-summary-box">
+      <div class="sheet-summary-title">{{ references|length }} magasin(s)</div>
+      <p>Pour enrichir ou corriger cette liste, ouvrez un compte-rendu reçu puis utilisez “Enregistrer et mettre à jour le référentiel”.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sheet-panel sheet-panel-full">
+  <form method="GET" class="filters-bar">
+    <div class="field-group">
+      <label class="field-label" for="q">Recherche</label>
+      <input id="q" name="q" class="field-input" value="{{ q }}" placeholder="Nom magasin, alias, ville…">
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="enseigne">Enseigne</label>
+      <div class="select-wrapper">
+        <select id="enseigne" name="enseigne" class="field-input field-select">
+          <option value=""></option>
+          {% for option in enseigne_options %}
+          <option value="{{ option }}" {% if enseigne == option %}selected{% endif %}>{{ option }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="field-group">
+      <label class="field-label" for="statut">Statut</label>
+      <div class="select-wrapper">
+        <select id="statut" name="statut" class="field-input field-select">
+          <option value="tous" {% if statut == 'tous' %}selected{% endif %}>Tous</option>
+          <option value="actif" {% if statut == 'actif' %}selected{% endif %}>Actifs</option>
+          <option value="inactif" {% if statut == 'inactif' %}selected{% endif %}>Inactifs</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Filtrer</button>
+      <a href="{{ url_for('dashboard.magasins') }}" class="btn btn-secondary">Réinitialiser</a>
+      <a href="{{ url_for('dashboard.magasin_nouveau', next=request.full_path) }}" class="btn btn-secondary">+ Nouveau magasin</a>
+    </div>
+  </form>
+</section>
+
+<section class="sheet-panel sheet-panel-full">
+  <div class="table-wrap">
+    <table class="cr-table">
+      <thead>
+        <tr>
+          <th>Enseigne</th>
+          <th>Nom de référence</th>
+          <th>Localisation</th>
+          <th>Région</th>
+          <th>Statut</th>
+          <th>Alias connus</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reference in references %}
+        <tr>
+          <td>{{ reference.enseigne or '—' }}</td>
+          <td>{{ reference.nom_reference }}</td>
+          <td>
+            {% if reference.code_postal or reference.commune %}
+              {{ reference.code_postal or '—' }} {{ reference.commune or '' }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>{{ reference.region or '—' }}</td>
+          <td>
+            <span class="badge {% if reference.actif %}badge-valide{% else %}badge-brouillon{% endif %}">
+              {{ 'actif' if reference.actif else 'inactif' }}
+            </span>
+          </td>
+          <td>
+            {% if alias_map[reference.id] %}
+            <div class="table-multiline">{{ alias_map[reference.id] }}</div>
+            {% else %}
+            —
+            {% endif %}
+          </td>
+          <td class="td-actions">
+            <a href="{{ url_for('dashboard.magasin_modifier', reference_id=reference.id, next=request.full_path) }}" class="btn-action btn-action-edit" title="Modifier">&#9998;</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="table-empty">Aucun magasin de référence sur ce filtre.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -6,6 +6,26 @@
 <div class="form-card">
   <h2 class="form-section-title"><span class="section-icon">🏪</span>Informations sur le magasin</h2>
   <form method="POST" action="{{ url_for('submit.etape', num=num) }}" novalidate>
+    <div class="lookup-box" data-store-ref-widget data-search-url="{{ url_for('submit.recherche_magasin_reference') }}">
+      <div class="lookup-box-head">
+        <div>
+          <div class="lookup-box-title">Aide au choix du magasin</div>
+          <p class="lookup-box-text">Choisissez d’abord l’enseigne, puis tapez quelques lettres du magasin ou de la ville. Si une proposition correspond, un clic remplit les champs pour vous.</p>
+        </div>
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="store_reference_search">Recherche dans le référentiel IRVA</label>
+        <input
+          id="store_reference_search"
+          class="field-input"
+          type="text"
+          placeholder="ex. Auchan Montauban, Leclerc Rodez, commune…"
+          data-store-ref-search
+          value="{{ cr.nom_magasin or '' }}">
+      </div>
+      <div class="store-ref-selected" data-store-ref-selected hidden></div>
+      <div class="store-ref-results" data-store-ref-results></div>
+    </div>
     <div class="field-row col-2">
       {{ field_select('enseigne', "Nom de l'enseigne", [
         ('Auchan','Auchan'),('Carrefour','Carrefour'),('E.Leclerc','E.Leclerc'),
@@ -19,6 +39,7 @@
       {{ field_text('code_postal', 'Code postal', value=cr.code_postal, placeholder='ex. 12850') }}
       {{ field_text('commune', 'Commune', value=cr.commune, placeholder='ex. Onet le Château') }}
     </div>
+    <p class="field-hint">Vous ne trouvez pas le bon magasin ? Complétez manuellement ci-dessous. L’équipe pourra ensuite l’ajouter au référentiel interne.</p>
     {{ field_text('nom_parrain', 'Nom du parrain du magasin', value=cr.nom_parrain, placeholder='Facultatif') }}
     <div class="field-row col-2">
       {{ field_text('nom_chef_boucher', 'Nom du chef boucher', value=cr.nom_chef_boucher) }}

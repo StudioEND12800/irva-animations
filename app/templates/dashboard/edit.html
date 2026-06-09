@@ -32,6 +32,7 @@
 <div class="form-card">
   <form method="POST" action="{{ url_for('dashboard.modifier', cr_id=cr.id, next=next_url) }}" novalidate>
     <input type="hidden" name="next" value="{{ next_url }}">
+    <input type="hidden" name="store_reference_id" id="store_reference_id" value="{{ matched_store_reference.id if matched_store_reference else '' }}">
 
     <h2 class="form-section-title"><span class="section-icon">🛠</span>Pilotage admin</h2>
     <div class="field-row col-2">
@@ -115,6 +116,43 @@
 
     <div class="sub-section">
       <h3 class="sub-section-title">Magasin</h3>
+      <div class="lookup-box" data-store-ref-widget data-search-url="{{ url_for('submit.recherche_magasin_reference') }}">
+        <div class="lookup-box-head">
+          <div>
+            <div class="lookup-box-title">Référentiel interne magasins</div>
+            <p class="lookup-box-text">Corrigez d’abord le formulaire reçu si besoin, puis mettez à jour le référentiel pour réutiliser ce magasin lors des prochains dossiers.</p>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label" for="store_reference_search">Chercher un magasin de référence</label>
+          <input
+            id="store_reference_search"
+            class="field-input"
+            type="text"
+            placeholder="ex. Auchan Montauban, Leclerc Rodez, commune…"
+            data-store-ref-search
+            value="{{ cr.nom_magasin or '' }}">
+        </div>
+        <div
+          class="store-ref-selected"
+          data-store-ref-selected
+          {% if not matched_store_reference %}hidden{% endif %}>
+          {% if matched_store_reference %}
+          <strong>{{ matched_store_reference.nom_magasin }}</strong>
+          <span>
+            {% if matched_store_reference.enseigne %}{{ matched_store_reference.enseigne }} · {% endif %}
+            {{ matched_store_reference.code_postal or 'CP ?' }} {{ matched_store_reference.commune or 'Commune ?' }}
+            {% if matched_store_reference.region %} · {{ matched_store_reference.region }}{% endif %}
+          </span>
+          {% endif %}
+        </div>
+        <div class="store-ref-results" data-store-ref-results></div>
+        <div class="field-group">
+          <label class="field-label" for="store_reference_aliases">Alias à mémoriser pour ce magasin</label>
+          <textarea id="store_reference_aliases" name="store_reference_aliases" class="field-input field-textarea" rows="4">{{ reference_aliases_text }}</textarea>
+          <div class="field-hint">Une variante par ligne. Exemple : nom saisi par l’éleveur, ancien libellé Excel, abréviation terrain.</div>
+        </div>
+      </div>
       <div class="field-row col-2">
         <div class="field-group">
           <label class="field-label" for="enseigne">Enseigne</label>
@@ -363,6 +401,7 @@
 
     <div class="form-actions">
       <a href="{{ next_url }}" class="btn btn-back">← Annuler</a>
+      <button type="submit" name="sync_store_reference" value="1" class="btn btn-secondary">Enregistrer et mettre à jour le référentiel</button>
       <button type="submit" class="btn btn-primary">Enregistrer les corrections</button>
     </div>
   </form>

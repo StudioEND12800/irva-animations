@@ -205,6 +205,178 @@ function initUploadZone(zoneId, inputId, gridId) {
 initUploadZone('upload-zone-photos', 'photos-input', 'photo-grid');
 initUploadZone('upload-zone-signature', 'sig-boucher-input', null);
 
+// ── Internal store reference lookup ─────────────────────────────────
+function initStoreReferenceLookup() {
+  document.querySelectorAll('[data-store-ref-widget]').forEach(widget => {
+    if (widget.dataset.lookupInit === '1') return;
+    widget.dataset.lookupInit = '1';
+
+    const form = widget.closest('form');
+    const searchUrl = widget.dataset.searchUrl;
+    const searchInput = widget.querySelector('[data-store-ref-search]');
+    const results = widget.querySelector('[data-store-ref-results]');
+    const selected = widget.querySelector('[data-store-ref-selected]');
+    const aliasTextarea = form?.querySelector('[name="store_reference_aliases"]');
+    const referenceIdInput = form?.querySelector('[name="store_reference_id"]');
+    const nameInput = form?.querySelector('[name="nom_magasin"]');
+    const enseigneInput = form?.querySelector('[name="enseigne"]');
+    const postalInput = form?.querySelector('[name="code_postal"]');
+    const communeInput = form?.querySelector('[name="commune"]');
+    const departmentInput = form?.querySelector('[name="code_departement"]');
+    const regionInput = form?.querySelector('[name="region"]');
+
+    if (!form || !searchUrl || !searchInput || !results) return;
+
+    let debounceTimer = null;
+    let abortController = null;
+    let applyingReference = false;
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function renderSelected(reference) {
+      if (!selected) return;
+      if (!reference) {
+        selected.hidden = true;
+        selected.innerHTML = '';
+        return;
+      }
+      const location = [reference.code_postal, reference.commune].filter(Boolean).join(' ');
+      const meta = [reference.enseigne, location, reference.region].filter(Boolean).join(' · ');
+      selected.hidden = false;
+      selected.innerHTML = `
+        <strong>${escapeHtml(reference.nom_magasin || '')}</strong>
+        <span>${escapeHtml(meta || 'Référence prête à appliquer')}</span>
+      `;
+    }
+
+    function clearSelectedReference() {
+      if (applyingReference) return;
+      if (referenceIdInput) referenceIdInput.value = '';
+      renderSelected(null);
+    }
+
+    function applyReference(reference) {
+      applyingReference = true;
+      if (referenceIdInput) referenceIdInput.value = reference.id || '';
+      if (searchInput) searchInput.value = reference.nom_magasin || '';
+      if (nameInput) nameInput.value = reference.nom_magasin || '';
+      if (enseigneInput && reference.enseigne) enseigneInput.value = reference.enseigne;
+      if (postalInput && reference.code_postal) postalInput.value = reference.code_postal;
+      if (communeInput && reference.commune) communeInput.value = reference.commune;
+      if (departmentInput && reference.code_departement) departmentInput.value = reference.code_departement;
+      if (regionInput && reference.region) regionInput.value = reference.region;
+      if (aliasTextarea && !aliasTextarea.value.trim()) {
+        aliasTextarea.value = [reference.nom_magasin, ...(reference.aliases || [])]
+          .filter(Boolean)
+          .join('\n');
+      }
+      renderSelected(reference);
+      results.innerHTML = '';
+      applyingReference = false;
+    }
+
+    function renderResults(items) {
+      if (!items.length) {
+        results.innerHTML = '<div class="store-ref-empty">Aucune proposition pour cette saisie.</div>';
+        return;
+      }
+
+      results.innerHTML = items.map(item => {
+        const location = [item.code_postal, item.commune].filter(Boolean).join(' ');
+        const meta = [item.enseigne, location, item.region].filter(Boolean).join(' · ');
+        const aliasText = (item.aliases || []).slice(0, 3).join(', ');
+        return `
+          <button type="button" class="store-ref-result" data-reference="${encodeURIComponent(JSON.stringify(item))}">
+            <span class="store-ref-result-title">${escapeHtml(item.nom_magasin || '')}</span>
+            <span class="store-ref-result-meta">${escapeHtml(meta || 'Référence sans localisation')}</span>
+            ${aliasText ? `<span class="store-ref-result-alias">Alias : ${escapeHtml(aliasText)}</span>` : ''}
+          </button>
+        `;
+      }).join('');
+
+      results.querySelectorAll('.store-ref-result').forEach(button => {
+        button.addEventListener('click', () => {
+          const reference = JSON.parse(decodeURIComponent(button.dataset.reference || '%7B%7D'));
+          applyReference(reference);
+        });
+      });
+    }
+
+    async function fetchReferences() {
+      const query = searchInput.value.trim();
+      const enseigne = enseigneInput?.value?.trim() || '';
+      const codePostal = postalInput?.value?.trim() || '';
+      const commune = communeInput?.value?.trim() || '';
+
+      if (!query && !codePostal && !commune) {
+        results.innerHTML = '';
+        return;
+      }
+
+      if (query && query.length < 2 && !codePostal && !commune) {
+        results.innerHTML = '<div class="store-ref-empty">Tapez au moins 2 caractères pour lancer la recherche.</div>';
+        return;
+      }
+
+      abortController?.abort();
+      abortController = new AbortController();
+
+      const url = new URL(searchUrl, window.location.origin);
+      url.searchParams.set('q', query);
+      url.searchParams.set('enseigne', enseigne);
+      url.searchParams.set('code_postal', codePostal);
+      url.searchParams.set('commune', commune);
+
+      results.innerHTML = '<div class="store-ref-empty">Recherche en cours…</div>';
+
+      try {
+        const response = await fetch(url, { signal: abortController.signal });
+        const data = await response.json();
+        renderResults(data.results || []);
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Store reference lookup error', error);
+        results.innerHTML = '<div class="store-ref-empty">La recherche n’a pas abouti. Vous pouvez saisir le magasin manuellement.</div>';
+      }
+    }
+
+    function scheduleFetch() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(fetchReferences, 180);
+    }
+
+    searchInput.addEventListener('input', scheduleFetch);
+    [enseigneInput, postalInput, communeInput].forEach(input => {
+      input?.addEventListener('input', scheduleFetch);
+      input?.addEventListener('change', scheduleFetch);
+    });
+    [nameInput, enseigneInput, postalInput, communeInput, departmentInput, regionInput].forEach(input => {
+      input?.addEventListener('input', clearSelectedReference);
+      input?.addEventListener('change', clearSelectedReference);
+    });
+
+    if (searchInput.value.trim()) {
+      renderSelected(referenceIdInput?.value ? {
+        id: referenceIdInput.value,
+        nom_magasin: nameInput?.value || searchInput.value,
+        enseigne: enseigneInput?.value || '',
+        code_postal: postalInput?.value || '',
+        commune: communeInput?.value || '',
+        region: regionInput?.value || '',
+      } : null);
+      scheduleFetch();
+    }
+  });
+}
+
+initStoreReferenceLookup();
+
 // ── Progress track auto-shift on mobile ──────────────────────────────
 function initProgressSteps() {
   document.querySelectorAll('[data-progress-shell]').forEach(shell => {

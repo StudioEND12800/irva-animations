@@ -182,6 +182,91 @@ body {
 }
 .field-textarea { resize: vertical; min-height: 80px; }
 
+.lookup-box {
+  margin-bottom: 24px;
+  padding: 18px 20px;
+  border: 1px solid rgba(79,121,66,.18);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(166,198,119,.12) 0%, rgba(255,255,255,.96) 100%);
+}
+.lookup-box-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.lookup-box-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.lookup-box-text {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+.store-ref-selected {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(79,121,66,.10);
+  border: 1px solid rgba(79,121,66,.15);
+}
+.store-ref-selected strong {
+  color: var(--green-dark);
+  font-size: 14px;
+}
+.store-ref-selected span {
+  color: var(--gray-600);
+  font-size: 12px;
+}
+.store-ref-results {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.store-ref-result {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--gray-300);
+  border-radius: 12px;
+  background: rgba(255,255,255,.92);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+}
+.store-ref-result:hover {
+  border-color: var(--green);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(79,121,66,.08);
+}
+.store-ref-result-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-800);
+}
+.store-ref-result-meta,
+.store-ref-result-alias,
+.store-ref-empty {
+  font-size: 12px;
+  color: var(--gray-600);
+}
+.store-ref-empty {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.7);
+  border: 1px dashed var(--gray-300);
+}
+
 .select-wrapper { position: relative; }
 .select-wrapper::after {
   content: '▾';
@@ -249,6 +334,12 @@ body {
   border: 1.5px solid var(--gray-400);
 }
 .btn-danger { background: var(--red); color: white; }
+
+.table-multiline {
+  white-space: pre-line;
+  font-size: 12px;
+  color: var(--gray-700);
+}
 
 /* ── Prix table ── */
 .prix-table { width: 100%; border-collapse: collapse; }

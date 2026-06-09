@@ -9,6 +9,7 @@ from flask import (Blueprint, render_template, request, redirect,
                    url_for, session, flash, current_app, jsonify)
 from werkzeug.utils import secure_filename
 from models import db, CompteRendu, Photo
+from app.store_reference import find_store_reference_matches, store_reference_payload
 from app.utils import infer_department_code, infer_region
 
 log = logging.getLogger(__name__)
@@ -65,6 +66,31 @@ def reprendre(token):
         return render_template('form/confirme.html', cr=cr)
     session['cr_token'] = cr.token
     return redirect(url_for('submit.etape', num=_etape_courante(cr)))
+
+
+@submit_bp.route('/magasins/recherche')
+def recherche_magasin_reference():
+    query = request.args.get('q', '').strip()
+    enseigne = request.args.get('enseigne', '').strip()
+    code_postal = request.args.get('code_postal', '').strip()
+    commune = request.args.get('commune', '').strip()
+
+    if not any([query, enseigne, code_postal, commune]):
+        return jsonify({'results': []})
+
+    try:
+        limit = max(1, min(int(request.args.get('limit', 8)), 12))
+    except (TypeError, ValueError):
+        limit = 8
+
+    matches = find_store_reference_matches(
+        query=query,
+        enseigne=enseigne,
+        code_postal=code_postal,
+        commune=commune,
+        limit=limit,
+    )
+    return jsonify({'results': [store_reference_payload(reference) for reference in matches]})
 
 
 def _etape_courante(cr):
